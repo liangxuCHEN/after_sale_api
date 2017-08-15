@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-from app import db
+from main import db
 
 class Waixie(db.Model):
     __tablename__ = 'Waixies' 
@@ -14,5 +14,5 @@ class Waixie(db.Model):
     updated_at = db.Column(db.DateTime)
     saler_name = db.Column(db.String(20))
     expired_status = db.Column(db.String(20))
-    summited_at = db.Column(da.DateTime)
+    summited_at = db.Column(db.DateTime)
     material_supplier = db.Column(db.String(20))

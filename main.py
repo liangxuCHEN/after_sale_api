@@ -66,4 +66,5 @@ def api_waixies():
         return jsonify({"message": e}), 400
 
 if __name__ == "__main__":
-    manager.run()
+    #manager.run()
+    app.run(host='0.0.0.0', debug=True, port=80)

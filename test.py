@@ -22,6 +22,7 @@ def fake_waixie():
 
 def simple_test():
     resp = requests.post('http://localhost:5050/api/v1/waixies', json = fake_waixie())
+    print resp
 
 if __name__ == "__main__":
     simple_test()
