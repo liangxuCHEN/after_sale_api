@@ -9,7 +9,7 @@ import os, json
 base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = \
-        'sqlite:///%s' % os.path.join(base_dir, 'data.sqlite')
+        'sqlite:///%s' % os.path.join(base_dir, '../data.sqlite')
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 manager = Manager(app)
@@ -29,12 +29,12 @@ class Waixie(db.Model):
     type = db.Column(db.String(20))
     customer = db.Column(db.String(20))
     material_number = db.Column(db.String(20))
-    created_at = db.Column(db.DateTime)
-    updated_at = db.Column(db.DateTime)
     saler_name = db.Column(db.String(20))
     expired_status = db.Column(db.String(20))
-    summited_at = db.Column(db.DateTime)
     material_supplier = db.Column(db.String(20))
+    summited_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime)
+    updated_at = db.Column(db.DateTime)
 
     def __repr__(self):
         return "<Waixie %(id)d>" % self

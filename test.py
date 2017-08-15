@@ -21,7 +21,7 @@ def fake_waixie():
     return required_field
 
 def simple_test():
-    resp = requests.post('http://localhost:5050/api/v1/waixies', json = fake_waixie())
+    resp = requests.post('http://localhost:5050/api/v1/waixies', json=fake_waixie())
     print resp
 
 if __name__ == "__main__":
