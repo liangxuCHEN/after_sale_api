@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-from main import db
+from . import db
 
 class Waixie(db.Model):
     __tablename__ = 'Waixies' 
