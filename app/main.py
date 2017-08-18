@@ -39,6 +39,21 @@ class Waixie(db.Model):
     def __repr__(self):
         return "<Waixie %(id)d>" % self
 
+    def to_json(self):
+        return {
+            'id': self.id,
+            'serial_number': self.serial_number,
+            'type': self.type,
+            'customer': self.customer,
+            'material_number': self.material_number,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at,
+            'saler_name': self.saler_name,
+            'expired_status': self.expired_status,
+            'summited_at': self.summited_at,
+            'material_supplier': self.material_supplier
+        }
+
 @app.route('/')
 def api_root():
     return 'Welcome, app for sale_service opened now!'
@@ -51,20 +66,45 @@ def api_sales():
 def api_sale(sale_id):
     return "List of sale record#%s change" % sale_id
 
-@app.route('/api/v1/waixies', methods = ["POST"])
+@app.route('/api/v1/waixies', methods = ["POST", "GET"])
 def api_waixies():
     try:
         if request.headers['Content-Type'] == 'application/json':
             data = request.json
-            entity = Waixie(**data)
-            db.session.add(entity)
-            db.session.commit()
-            return jsonify({"message": "ok"}), 200
+            if request.method == 'POST':
+                entity = Waixie(**data)
+                db.session.add(entity)
+                db.session.commit()
+                return jsonify({"message": "ok"}), 200
+            else:
+                raise Exception("HTTP meothd wrong")
         else:
             return jsonify({"message": "wrong data type"}), 400        
+    except Exception as e:
+        if request.method == 'GET':
+            entities = Waixie.query.all()
+            return jsonify(waixies = [e.to_json() for e in entities]), 200
+        return jsonify({"message": e}), 400
+
+@app.route('/api/v1/waixies/<int:field_id>/update', methods = ["POST"])
+def api_waixies_update(field_id):
+    try:
+        if request.headers['Content-Type'] == 'application/json':
+            data = request.json
+            if request.method == 'POST':
+                entity_id = field_id
+                entity = Waixie.query.get(field_id)
+                db.session.add(entity)
+                db.session.commit()
+                return jsonify({"message": "ok"}), 200
+
+            else:
+                raise Exception("HTTP meothd wrong")
+        else:
+            return jsonify({"message": "wrong data type"}), 400
     except Exception as e:
         return jsonify({"message": e}), 400
 
 if __name__ == "__main__":
     #manager.run()
-    app.run(host='0.0.0.0', debug=True, port=80)
+    app.run(host='0.0.0.0', debug=True, port=5050)
