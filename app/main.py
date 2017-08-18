@@ -93,8 +93,7 @@ def api_waixies_update(field_id):
             data = request.json
             if request.method == 'POST':
                 entity_id = field_id
-                entity = Waixie.query.get(field_id)
-                db.session.add(entity)
+                Waixie.query.filter_by(id=field_id).update(data)
                 db.session.commit()
                 return jsonify({"message": "ok"}), 200
 

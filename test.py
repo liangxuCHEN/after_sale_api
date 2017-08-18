@@ -33,14 +33,10 @@ def simple_get_test():
 def simple_put_test():
     data = fake_waixie()
     data['material_number'] = 'SH201707040001'
+    data['id'] = 1000
     resp = requests.post('http://localhost:5050/api/v1/waixies/1/update', json=data)
     print resp.json()
 
 if __name__ == "__main__":
-    try:
-        method = sys.argv[1]
-        globals()["_".join(["simple", method, "test"])]()
-
-    #simple_post_test()
-    except Exception as e:
-        simple_get_test()
+    method = sys.argv[1]
+    globals()["_".join(["simple", method, "test"])]()
