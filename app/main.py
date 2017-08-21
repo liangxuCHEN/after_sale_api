@@ -5,6 +5,8 @@ from flask import Flask, url_for, request, jsonify, Response
 from flask_script import Manager, Shell
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, MigrateCommand
+from flask_restful import Api, Resource, reqparse
+
 import os, json
 base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
@@ -14,6 +16,7 @@ app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 manager = Manager(app)
 db = SQLAlchemy(app)
+api = Api(app)
 mirgrate = Migrate(app, db)
 manager.add_command('db', MigrateCommand)
 
@@ -23,21 +26,20 @@ manager.add_command('db', MigrateCommand)
 """
 
 class Waixie(db.Model):
-    __tablename__ = 'Waixies' 
-    id = db.Column(db.Integer, primary_key=True, nullable=False)  
-    serial_number = db.Column(db.String(14), unique=True)
-    type = db.Column(db.String(20))
-    customer = db.Column(db.String(20))
+    __tablename__ = 'T_AfterService_Workflow'
+    id = db.Column(db.Integer, primary_key=True)  
+    serial_number = db.Column(db.String(14), unique=True) #单据编号
+    type = db.Column(db.String(20)) #单据类型
+    customer = db.Column(db.String(20)) #客户
     material_number = db.Column(db.String(20))
     saler_name = db.Column(db.String(20))
     expired_status = db.Column(db.String(20))
-    material_supplier = db.Column(db.String(20))
     summited_at = db.Column(db.DateTime)
+    material_supplier = db.Column(db.String(20))
     created_at = db.Column(db.DateTime)
     updated_at = db.Column(db.DateTime)
-
-    def __repr__(self):
-        return "<Waixie %(id)d>" % self
+    status = db.Column(db.Integer, nullable=False)
+    workflow_status = db.Column(db.Integer, nullable=False)
 
     def to_json(self):
         return {
@@ -53,6 +55,22 @@ class Waixie(db.Model):
             'summited_at': self.summited_at,
             'material_supplier': self.material_supplier
         }
+
+class WorkflowJournal(db.Model):
+    __tablename__ = 'T_Workflow_Journals'
+    id = db.Column(db.Integer, primary_key=True)
+    workflow_id = db.Column(db.Integer, nullable=False)
+    source = db.Column(db.Integer, nullable=False)
+    destination = db.Column(db.Integer, nullable=False)
+    trigger = db.Column(db.String(20))
+    created_at = db.Column(db.DateTime)
+    updated_at = db.Column(db.DateTime)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'workflow': "name"
+    }
 
 @app.route('/')
 def api_root():
@@ -103,6 +121,27 @@ def api_waixies_update(field_id):
             return jsonify({"message": "wrong data type"}), 400
     except Exception as e:
         return jsonify({"message": e}), 400
+
+class OrderAPI(Resource):
+    def __init__(self):
+        self.reqparser = reqparse.RequestParser()
+
+    def get(self, id):
+        return {"message": "ok"}, 200
+    def put(self, id):
+        return {"message": "ok"}, 200
+    
+class OrderListAPI(Resource):
+    def __init__(self):
+        self.reqparser = reqparse.RequestParser()
+
+    def get(self):
+        return {"message": "ok"}, 200
+    def post(self):
+        return {"message": "ok"}, 200
+
+api.add_resource(OrderAPI, '/api/v1/orders/<int:id>', endpoint='order')
+api.add_resource(OrderListAPI, '/api/v1/orders', endpoint='orders')
 
 if __name__ == "__main__":
     #manager.run()
