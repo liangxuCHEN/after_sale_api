@@ -6,7 +6,7 @@ import requests, json, sys
 def fake_waixie():
     required_field = {
         "type": "order_type",
-        "customer_guid": "customer_guid",
+        "customer_guid": "好人",
         "creater_guid": "creater_guid",
     }
     optional_field = {
@@ -23,7 +23,7 @@ def fake_waixie():
     return required_field
 
 def simple_post_test():
-    resp = requests.post('http://localhost:5050/api/v1/afterservice/orders', json=fake_waixie())
+    resp = requests.post('http://localhost:5050/api/v1/waixies', json=fake_waixie())
     print resp.json()
 
 def simple_get_test():

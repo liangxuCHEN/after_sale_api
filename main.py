@@ -6,12 +6,14 @@ from flask_script import Manager, Shell
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, MigrateCommand
 from flask_restful import Api, Resource, reqparse
-
 import os, json
+
 base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = \
-        'sqlite:///%s' % os.path.join(base_dir, 'data.sqlite')
+        "mssql+pymssql://BS-Prt:123123@192.168.1.253:1433/BSPRODUCTCENTER?charset=utf8"
+#       "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
+#        'sqlite:///%s' % os.path.join(base_dir, 'data.sqlite')
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 manager = Manager(app)
@@ -94,10 +96,10 @@ def api_waixies():
         if request.headers['Content-Type'] == 'application/json':
             data = request.json
             if request.method == 'POST':
-                entity = Waixie(**data)
+                entity = Waixie(status=1,workflow_status=1, **data)
                 db.session.add(entity)
                 db.session.commit()
-                return jsonify({"message": "ok"}), 200
+                return jsonify({"message": "ok", "data": entity.to_json()}), 200
             else:
                 raise Exception("HTTP meothd wrong")
         else:
@@ -130,10 +132,10 @@ def api_waixies_update(field_id):
 class OrderAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
-        self.reqparser.add_argument("creater_guid", type=str, location="json")
-        self.reqparser.add_argument("type", type=str, location="json")
-        self.reqparser.add_argument("customer_guid", type=str, location="json")
-        self.reqparser.add_argument("serial_number", type=str, location="json")
+        self.reqparser.add_argument("creater_guid", type=unicode, location="json")
+        self.reqparser.add_argument("type", type=unicode, location="json")
+        self.reqparser.add_argument("customer_guid", type=unicode, location="json")
+        self.reqparser.add_argument("serial_number", type=unicode, location="json")
         super(OrderAPI, self).__init__()
 
     def get(self, id):
@@ -148,9 +150,9 @@ class OrderAPI(Resource):
 class OrderListAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
-        self.reqparser.add_argument("creater_guid", type=str, location="json")
-        self.reqparser.add_argument("type", type=str, location="json")
-        self.reqparser.add_argument("customer_guid", type=str, location="json")
+        self.reqparser.add_argument("creater_guid", type=unicode, location="json")
+        self.reqparser.add_argument("type", type=unicode, location="json")
+        self.reqparser.add_argument("customer_guid", type=unicode, location="json")
         super(OrderListAPI, self).__init__()
 
     def get(self):
