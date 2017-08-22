@@ -70,11 +70,11 @@ class WorkflowJournal(db.Model):
     created_at = db.Column(db.DateTime)
     updated_at = db.Column(db.DateTime)
 
-    def to_dict(self):
+    def to_json(self):
         return {
             'id': self.id,
-            'workflow': "name"
-    }
+            'workflow_type': "game",
+        }
 
 @app.route('/')
 def api_root():
@@ -164,10 +164,21 @@ class OrderListAPI(Resource):
 
         return {"message": "ok", "data": [entity.to_json()], "status": 0}, 200
 
+class OrderJournalListAPI(Resource):
+    def __init__(self):
+        self.reqparser = reqparse.RequestParser()
+        
+        super(OrderJournalListAPI, self).__init__()
+
+    def get(self):
+        #params = request.args
+        entities = WorkflowJournal.query.all()
+        return {"message": "ok", "data":[e.to_json() for e in entities], "status":0}, 200
 
 
-api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='order')
-api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='orders')
+api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='afterservice_order')
+api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterservice_orders')
+api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice_order_journals")
 
 if __name__ == "__main__":
     manager.run()

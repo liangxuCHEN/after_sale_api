@@ -40,6 +40,10 @@ def simple_get_one_test():
     resp = requests.get('http://localhost:5050/api/v1/afterservice/orders/1')
     print resp.json()
 
+def simple_get_journals_test():
+    resp = requests.get('http://localhost:5050/api/v1/afterservice/orders/journals')
+    print resp.json()
+
 if __name__ == "__main__":
     method = sys.argv[1]
     globals()["_".join(["simple", method, "test"])]()
