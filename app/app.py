@@ -26,20 +26,22 @@ manager.add_command('db', MigrateCommand)
 """
 
 class Waixie(db.Model):
-    __tablename__ = 'T_AfterService_Workflow'
+    __tablename__ = 'T_AfterService_Workflows'
     id = db.Column(db.Integer, primary_key=True)  
     serial_number = db.Column(db.String(14), unique=True) #单据编号
     type = db.Column(db.String(20)) #单据类型
-    customer = db.Column(db.String(20)) #客户
-    material_number = db.Column(db.String(20))
+    customer_guid = db.Column(db.String(20)) #客户
+    creater_guid = db.Column(db.Integer)
     saler_name = db.Column(db.String(20))
     expired_status = db.Column(db.String(20))
     summited_at = db.Column(db.DateTime)
+    material_number = db.Column(db.String(20))
     material_supplier = db.Column(db.String(20))
     created_at = db.Column(db.DateTime)
     updated_at = db.Column(db.DateTime)
     status = db.Column(db.Integer, nullable=False)
     workflow_status = db.Column(db.Integer, nullable=False)
+    remark = db.Column(db.String(20))
 
     def to_json(self):
         return {
@@ -59,7 +61,9 @@ class Waixie(db.Model):
 class WorkflowJournal(db.Model):
     __tablename__ = 'T_Workflow_Journals'
     id = db.Column(db.Integer, primary_key=True)
+    # Todo: find the way to mock the polymorphic
     workflow_id = db.Column(db.Integer, nullable=False)
+    workflow_type = db.Column(db.String(20))
     source = db.Column(db.Integer, nullable=False)
     destination = db.Column(db.Integer, nullable=False)
     trigger = db.Column(db.String(20))
@@ -122,6 +126,7 @@ def api_waixies_update(field_id):
     except Exception as e:
         return jsonify({"message": e}), 400
 
+
 class OrderAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
@@ -140,9 +145,11 @@ class OrderListAPI(Resource):
     def post(self):
         return {"message": "ok"}, 200
 
-api.add_resource(OrderAPI, '/api/v1/orders/<int:id>', endpoint='order')
-api.add_resource(OrderListAPI, '/api/v1/orders', endpoint='orders')
+
+
+api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='order')
+api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='orders')
 
 if __name__ == "__main__":
-    #manager.run()
-    app.run(host='0.0.0.0', debug=True, port=5050)
+    manager.run()
+    #app.run(host='0.0.0.0', debug=True, port=5050)

@@ -38,6 +38,7 @@ class WorkflowJournal(db.Model):
     __tablename__ = 'T_Workflow_Journals'
     id = db.Column(db.Integer, primary_key=True)
     workflow_id = db.Column(db.Integer, nullable=False)
+    workflow_type = db.Column(db.String(20))
     source = db.Column(db.Integer, nullable=False)
     destination = db.Column(db.Integer, nullable=False)
     trigger = db.Column(db.String(20))

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-
+from transitions import Machine
 from aenum import Enum
 
 __author__ = "chenyj"

@@ -5,9 +5,9 @@ import requests, json, sys
 
 def fake_waixie():
     required_field = {
-        "type": "单据类型",
-        "customer": "客户",
-        "expired_status": "超时时效",
+        "type": "order_type",
+        "customer_guid": "customer_guid",
+        "creater_guid": "creater_guid",
     }
     optional_field = {
         "material_number": "物料编号",
@@ -23,18 +23,21 @@ def fake_waixie():
     return required_field
 
 def simple_post_test():
-    resp = requests.post('http://localhost:5050/api/v1/waixies', json=fake_waixie())
+    resp = requests.post('http://localhost:5050/api/v1/afterservice/orders', json=fake_waixie())
     print resp.json()
 
 def simple_get_test():
-    resp = requests.get('http://localhost:5050/api/v1/waixies')
+    resp = requests.get('http://localhost:5050/api/v1/afterservice/orders')
     print resp.json()
 
 def simple_put_test():
     data = fake_waixie()
-    data['material_number'] = 'SH201707040001'
-    data['id'] = 1000
-    resp = requests.post('http://localhost:5050/api/v1/waixies/1/update', json=data)
+    data['serial_number'] = 'SH201707040001'
+    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/1', json=data)
+    print resp.json()
+
+def simple_get_one_test():
+    resp = requests.get('http://localhost:5050/api/v1/afterservice/orders/1')
     print resp.json()
 
 if __name__ == "__main__":
