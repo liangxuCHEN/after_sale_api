@@ -141,6 +141,7 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("material_number", type=unicode, location="json")
         self.reqparser.add_argument("material_supplier_guid", type=unicode, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
+        self.reqparser.add_argument("operation", type=unicode, localtion="json")
         super(OrderAPI, self).__init__()
 
     def get(self, id):
