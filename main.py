@@ -38,7 +38,7 @@ class Waixie(db.Model):
     expired_status = db.Column(db.String(20))
     summited_at = db.Column(db.DateTime)
     material_number = db.Column(db.String(20))
-    material_supplier = db.Column(db.String(20))
+    material_supplier_guid = db.Column(db.String(20))
     created_at = db.Column(db.DateTime)
     updated_at = db.Column(db.DateTime)
     status = db.Column(db.Integer, nullable=False)
@@ -57,7 +57,9 @@ class Waixie(db.Model):
             'saler_name': self.saler_name,
             'expired_status': self.expired_status,
             'summited_at': self.summited_at,
-            'material_supplier': self.material_supplier
+            'material_supplier': self.material_supplier_guid,
+            'status': self.status,
+            'workflow_status': self.workflow_status
         }
 
 class WorkflowJournal(db.Model):
@@ -136,6 +138,9 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("type", type=unicode, location="json")
         self.reqparser.add_argument("customer_guid", type=unicode, location="json")
         self.reqparser.add_argument("serial_number", type=unicode, location="json")
+        self.reqparser.add_argument("material_number", type=unicode, location="json")
+        self.reqparser.add_argument("material_supplier_guid", type=unicode, location="json")
+        self.reqparser.add_argument("remark", type=unicode, location="json")
         super(OrderAPI, self).__init__()
 
     def get(self, id):
@@ -153,6 +158,10 @@ class OrderListAPI(Resource):
         self.reqparser.add_argument("creater_guid", type=unicode, location="json")
         self.reqparser.add_argument("type", type=unicode, location="json")
         self.reqparser.add_argument("customer_guid", type=unicode, location="json")
+        self.reqparser.add_argument("material_number", type=unicode, location="json")
+        self.reqparser.add_argument("material_supplier_guid", type=unicode, location="json")
+        self.reqparser.add_argument("remark", type=unicode, location="json")
+
         super(OrderListAPI, self).__init__()
 
     def get(self):
@@ -164,7 +173,7 @@ class OrderListAPI(Resource):
         db.session.add(entity)
         db.session.commit()
 
-        return {"message": "ok", "data": [entity.to_json()], "status": 0}, 200
+        return {"message": "ok", "status": 0}, 200
 
 class OrderJournalListAPI(Resource):
     def __init__(self):

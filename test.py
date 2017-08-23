@@ -11,7 +11,7 @@ def fake_waixie():
     }
     optional_field = {
         "material_number": "物料编号",
-        "material_supplier": "原材料供应商"
+        "material_supplier_guid": "原材料供应商"
     }
     after_filled = {
         "saler_name": "售后专员",
@@ -23,7 +23,7 @@ def fake_waixie():
     return required_field
 
 def simple_post_test():
-    resp = requests.post('http://localhost:5050/api/v1/waixies', json=fake_waixie())
+    resp = requests.post('http://localhost:5050/api/v1/afterservice/orders', json=fake_waixie())
     print resp.json()
 
 def simple_get_test():
