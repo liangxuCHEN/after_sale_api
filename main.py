@@ -141,7 +141,7 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("material_number", type=unicode, location="json")
         self.reqparser.add_argument("material_supplier_guid", type=unicode, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
-        self.reqparser.add_argument("operation", type=unicode, localtion="json")
+        self.reqparser.add_argument("operation", type=unicode, location="json")
         super(OrderAPI, self).__init__()
 
     def get(self, id):
@@ -152,6 +152,8 @@ class OrderAPI(Resource):
             return {"message": "ok", "data": entity.to_json(), "status": 0}, 200
     def put(self, id):
         args = self.reqparser.parse_args()
+        flag = args["operation"]
+        del args["operation"]
         Waixie.query.filter_by(id=id).update(args)
         db.session.commit()
         return {"message": "ok"}, 200
