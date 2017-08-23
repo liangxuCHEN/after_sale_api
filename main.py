@@ -57,7 +57,7 @@ class Waixie(db.Model):
             'saler_name': self.saler_name,
             'expired_status': self.expired_status,
             'summited_at': self.summited_at,
-            'material_supplier': self.material_supplier_guid,
+            'material_supplier_guid': self.material_supplier_guid,
             'status': self.status,
             'workflow_status': self.workflow_status
         }
