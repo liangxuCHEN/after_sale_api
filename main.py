@@ -155,8 +155,6 @@ class OrderAPI(Resource):
 class OrderListAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
-        self.reqparser.add_argument("creater_guid", type=unicode, location="json")
-        self.reqparser.add_argument("type", type=unicode, location="json")
         self.reqparser.add_argument("customer_guid", type=unicode, location="json")
         self.reqparser.add_argument("material_number", type=unicode, location="json")
         self.reqparser.add_argument("material_supplier_guid", type=unicode, location="json")
