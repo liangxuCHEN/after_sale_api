@@ -145,7 +145,10 @@ class OrderAPI(Resource):
 
     def get(self, id):
         entity = Waixie.query.get(id)
-        return {"message": "ok", "data": entity.to_json(), "status": 0}, 200
+        if entity is None:
+            return {"message": "no this order record", "status": 404}, 200
+        else:
+            return {"message": "ok", "data": entity.to_json(), "status": 0}, 200
     def put(self, id):
         args = self.reqparser.parse_args()
         Waixie.query.filter_by(id=id).update(args)
