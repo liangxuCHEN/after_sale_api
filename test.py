@@ -27,8 +27,12 @@ def simple_post_test():
     #resp = requests.post('http://localhost:5050/api/v1/afterservice/orders', json=fake_waixie())
     print resp.json()
 
-def simple_get_test():
-    resp = requests.get('http://192.168.3.172:5050/api/v1/afterservice/orders')
+def simple_get_test(*params):
+    if len(params) >= 1:
+        resp = requests.get('http://localhost:5050/api/v1/afterservice/orders?%s' % "&".join(params))
+    else:
+        resp = requests.get('http://localhost:5050/api/v1/afterservice/orders')
+        
     #resp = requests.get('http://localhost:5050/api/v1/afterservice/orders')
     print resp.json()
 
@@ -36,13 +40,13 @@ def simple_put_test():
     data = fake_waixie()
     data['serial_number'] = 'SH201707040001'
     data['operation'] = 'done'
-    #resp = requests.put('http://192.168.3.172:5050/api/v1/afterservice/orders/1', json=data)
-    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/1', json=data)
+    #resp = requests.put('http://192.168.3.172:5050/api/v1/afterservice/orders/5', json=data)
+    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/5', json=data)
 
     print resp.json()
 def simple_get_one_test():
-    resp = requests.get('http://192.168.3.172:5050/api/v1/afterservice/orders/1')
-    #resp = requests.get('http://localhost:5050/api/v1/afterservice/orders/1')
+    #resp = requests.get('http://192.168.3.172:5050/api/v1/afterservice/orders/5')
+    resp = requests.get('http://localhost:5050/api/v1/afterservice/orders/5')
     print resp.json()
 
 def simple_get_journals_test():
@@ -52,4 +56,9 @@ def simple_get_journals_test():
 
 if __name__ == "__main__":
     method = sys.argv[1]
-    globals()["_".join(["simple", method, "test"])]()
+    params = sys.argv[2:]
+    print "&".join(params)
+    if len(params) >= 1:
+        globals()["_".join(["simple", method, "test"])](*params)
+    else:
+        globals()["_".join(["simple", method, "test"])]()

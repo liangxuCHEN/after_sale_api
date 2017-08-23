@@ -6,6 +6,9 @@ from flask_script import Manager, Shell
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, MigrateCommand
 from flask_restful import Api, Resource, reqparse
+from workflows.AfterService import Workflow, WorkflowStatus, AfterServiceStatus
+from transitions import MachineError
+from datetime import datetime
 import os, json
 
 base_dir = os.path.abspath(os.path.dirname(__name__))
@@ -26,6 +29,52 @@ manager.add_command('db', MigrateCommand)
 粗糙试用版本，主要提供线上对接用api，顺便拿点数据，
 试试部署方案，由于还有其他相关工作内容的整合，拖着点时间
 """
+
+# 还原表结构, 从思考到直接放弃
+
+class Product(db.Model):
+    __tablename__ = 'T_PRT_AllProduct'
+    id = db.Column(db.Integer, primary_key=True)
+    itemName = db.Column(db.String(None))
+    skuCode = db.Column(db.String(None))
+    itemCode = db.Column(db.String(None))
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "item_name": self.itemName,
+            "sku_code": self.skuCode,
+            "item_code": self.itemCode
+        }
+
+class Supplier(db.Model):
+    __tablename__ = "T_PRT_SupplierBasicInfo"
+    id = db.Column(db.Integer, primary_key=True)
+    supplierName = db.Column(db.String(None))
+
+class AbnormalProduct(db.Model):
+    __tablename__ = "T_PRT_AbnormalProduct"
+    id = db.Column(db.Integer, primary_key=True)
+    itemCode = db.Column(db.String(None))
+    workFlowId = db.Column(db.Integer)
+    remark = db.Column(db.String(None))
+
+
+class User(db.Model):
+    __tablename__ = 'T_SYS_User'
+    id = db.Column(db.Integer, primary_key=True)
+    userName = db.Column(db.String(None))
+    dptNames = db.Column(db.String(None))
+    dptIds = db.Column(db.String(None))
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "user_name": self.userName,
+            "dpt_names": self.dptNames,
+            "dpt_ids": self.dptIds
+        }
+
 
 class Waixie(db.Model):
     __tablename__ = 'T_AfterService_Workflows'
@@ -78,6 +127,9 @@ class WorkflowJournal(db.Model):
         return {
             'id': self.id,
             'workflow_type': "game",
+            'source': self.source,
+            'dest': self.destination,
+            'trigger': self.trigger
         }
 
 @app.route('/')
@@ -92,44 +144,9 @@ def api_sales():
 def api_sale(sale_id):
     return "List of sale record#%s change" % sale_id
 
-@app.route('/api/v1/waixies', methods = ["POST", "GET"])
-def api_waixies():
-    try:
-        if request.headers['Content-Type'] == 'application/json':
-            data = request.json
-            if request.method == 'POST':
-                entity = Waixie(status=1,workflow_status=1, **data)
-                db.session.add(entity)
-                db.session.commit()
-                return jsonify({"message": "ok", "data": entity.to_json()}), 200
-            else:
-                raise Exception("HTTP meothd wrong")
-        else:
-            return jsonify({"message": "wrong data type"}), 400        
-    except Exception as e:
-        if request.method == 'GET':
-            entities = Waixie.query.all()
-            return jsonify(waixies = [e.to_json() for e in entities]), 200
-        return jsonify({"message": e}), 400
-
-@app.route('/api/v1/waixies/<int:field_id>/update', methods = ["POST"])
-def api_waixies_update(field_id):
-    try:
-        if request.headers['Content-Type'] == 'application/json':
-            data = request.json
-            if request.method == 'POST':
-                entity_id = field_id
-                Waixie.query.filter_by(id=field_id).update(data)
-                db.session.commit()
-                return jsonify({"message": "ok"}), 200
-
-            else:
-                raise Exception("HTTP meothd wrong")
-        else:
-            return jsonify({"message": "wrong data type"}), 400
-    except Exception as e:
-        return jsonify({"message": e}), 400
-
+@app.route('/test')
+def api_test():
+    return jsonify({"message": "ok", "data":[e.to_json() for e in User.query.all()]})    
 
 class OrderAPI(Resource):
     def __init__(self):
@@ -142,6 +159,7 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("material_supplier_guid", type=unicode, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
         self.reqparser.add_argument("operation", type=unicode, location="json")
+
         super(OrderAPI, self).__init__()
 
     def get(self, id):
@@ -154,10 +172,36 @@ class OrderAPI(Resource):
         args = self.reqparser.parse_args()
         flag = args["operation"]
         del args["operation"]
-        Waixie.query.filter_by(id=id).update(args)
-        db.session.commit()
-        return {"message": "ok"}, 200
-    
+        #Waixie.query.filter_by(id=id).update(args)
+        entity = Waixie.query.get(id)
+        if entity is None:
+            return {"message": "no this order record", "status": 404}, 200
+        else:
+            flow = Workflow("temp", entity.status, entity.workflow_status)
+            try:
+                if flag is not None:
+                    source = flow.status_code()
+                    flow.done()
+                    destination = flow.status_code()
+                    jouranl = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, trigger=flag)
+                    db.session.add(jouranl)
+                    args["status"] = flow.status_code()
+            except MachineError as e:
+                flow.workflow.done()
+                args["workflow_status"] = flow.workflow.status_code()
+            Waixie.query.filter_by(id=id).update(args)
+            db.session.commit()
+        return {"message": "ok", "status": 0}, 200
+
+    def delete(self, id):
+        entity = Waixie.query.get(id)
+        if entity.workflow_status == WorkflowStatus["halt"].value:
+            db.session.delete(entity)
+            db.session.commit()
+            return {"message": "ok", "status": 0}, 200
+        else:
+            return {"message":"invalid operation", "status": 500}
+
 class OrderListAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
@@ -166,18 +210,24 @@ class OrderListAPI(Resource):
         self.reqparser.add_argument("material_supplier_guid", type=unicode, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
 
+        self.reqparser.add_argument("status", type=unicode)
         super(OrderListAPI, self).__init__()
 
     def get(self):
-        entities = Waixie.query.all()
+        args = self.reqparser.parse_args()
+        if args["status"] is not None:
+            entities = Waixie.query.filter_by(status = AfterServiceStatus[args['status']].value).all()
+        else:
+            entities = Waixie.query.all()
         return {"message": "ok", "data": [e.to_json() for e in entities], "status": 0}, 200
     def post(self):
         args = self.reqparser.parse_args()
-        entity = Waixie(status=1,workflow_status=1,**args)
+        entity = Waixie(status=AfterServiceStatus["created"].value, workflow_status=WorkflowStatus['in_progress'].value, **args)
         db.session.add(entity)
         db.session.commit()
 
         return {"message": "ok", "status": 0}, 200
+
 
 class OrderJournalListAPI(Resource):
     def __init__(self):
