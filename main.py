@@ -8,8 +8,8 @@ from flask_migrate import Migrate, MigrateCommand
 from flask_restful import Api, Resource, reqparse
 from workflows.AfterService import Workflow, WorkflowStatus, AfterServiceStatus
 from transitions import MachineError
-from datetime import datetime
-import os, json
+from datetime import datetime, date, timedelta
+import os, json, pdb
 
 base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
@@ -31,7 +31,6 @@ manager.add_command('db', MigrateCommand)
 """
 
 # 还原表结构, 从思考到直接放弃
-
 class Product(db.Model):
     __tablename__ = 'T_PRT_AllProduct'
     id = db.Column(db.Integer, primary_key=True)
@@ -55,9 +54,17 @@ class Supplier(db.Model):
 class AbnormalProduct(db.Model):
     __tablename__ = "T_PRT_AbnormalProduct"
     id = db.Column(db.Integer, primary_key=True)
-    itemCode = db.Column(db.String(None))
-    workFlowId = db.Column(db.Integer)
+    itemCode = db.Column(db.String(100))
+    workflowId = db.Column(db.Integer)
     remark = db.Column(db.String(None))
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "itemCode": self.itemCode,
+            "workflowId": self.workflowId,
+            "remark": self.remark
+        }
 
 
 class User(db.Model):
@@ -81,8 +88,8 @@ class Waixie(db.Model):
     id = db.Column(db.Integer, primary_key=True)  
     serial_number = db.Column(db.String(14)) #单据编号
     type = db.Column(db.String(20)) #单据类型
-    customer_guid = db.Column(db.String(20)) #客户
-    creater_guid = db.Column(db.String(20))
+    customer_guid = db.Column(db.String(20)) #客户字符串
+    creater_guid = db.Column(db.String(20)) #创建者id
     saler_name = db.Column(db.String(20))
     expired_status = db.Column(db.String(20))
     summited_at = db.Column(db.DateTime)
@@ -94,6 +101,19 @@ class Waixie(db.Model):
     workflow_status = db.Column(db.Integer, nullable=False)
     remark = db.Column(db.String(20))
 
+    def __init__(self, *args, **kwargs):
+        today = date.today()
+        datetime_today = datetime.strptime(str(today),'%Y-%m-%d') 
+        count = len(Waixie.query.filter(
+            Waixie.created_at >= datetime_today,
+            Waixie.created_at <= datetime_today + timedelta(days=1)
+        ).all()) + 1
+        self.serial_number = "SH%s%s" %(datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count))
+        self.created_at = datetime.now()
+        self.updated_at = datetime.now()
+        super(Waixie, self).__init__(*args, **kwargs)
+
+
     def to_json(self):
         return {
             'id': self.id,
@@ -101,11 +121,11 @@ class Waixie(db.Model):
             'type': self.type,
             'customer_guid': self.customer_guid,
             'material_number': self.material_number,
-            'created_at': self.created_at,
-            'updated_at': self.updated_at,
+            'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%s") if self.created_at is not None else "",
+            'updated_at': self.updated_at.strftime("%Y-%m-%d %H:%M:%s") if self.updated_at is not None else "",
             'saler_name': self.saler_name,
             'expired_status': self.expired_status,
-            'summited_at': self.summited_at,
+            'summited_at': self.summited_at.strftime("%Y-%m-%d %H:%M:%s") if self.summited_at is not None else "",
             'material_supplier_guid': self.material_supplier_guid,
             'status': self.status,
             'workflow_status': self.workflow_status
@@ -132,6 +152,7 @@ class WorkflowJournal(db.Model):
             'trigger': self.trigger
         }
 
+# 后面就是业务逻辑了
 @app.route('/')
 def api_root():
     return 'Welcome, app for sale_service opened now!'
@@ -146,7 +167,15 @@ def api_sale(sale_id):
 
 @app.route('/test')
 def api_test():
-    return jsonify({"message": "ok", "data":[e.to_json() for e in User.query.all()]})    
+    return jsonify({"message": "ok", "data":[e.to_json() for e in User.query.all()]})
+
+@app.route('/user/create')
+def api_post_user():
+    entity = User(userName="mac")
+    db.session.add(entity)
+    db.session.commit()
+    return "test user"  
+
 
 class OrderAPI(Resource):
     def __init__(self):
@@ -168,6 +197,7 @@ class OrderAPI(Resource):
             return {"message": "no this order record", "status": 404}, 200
         else:
             return {"message": "ok", "data": entity.to_json(), "status": 0}, 200
+
     def put(self, id):
         args = self.reqparser.parse_args()
         flag = args["operation"]
@@ -209,22 +239,43 @@ class OrderListAPI(Resource):
         self.reqparser.add_argument("material_number", type=unicode, location="json")
         self.reqparser.add_argument("material_supplier_guid", type=unicode, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
+        self.reqparser.add_argument("creater_guid", type=unicode, location="json")
+        # 列表改在request中处理
+        #self.reqparser.add_argument("abnormal_products", type=list, location="json")
 
-        self.reqparser.add_argument("status", type=unicode)
+        self.reqparser_get = reqparse.RequestParser()
+        self.reqparser_get.add_argument("status", type=unicode)
         super(OrderListAPI, self).__init__()
 
     def get(self):
-        args = self.reqparser.parse_args()
-        if args["status"] is not None:
+        args = self.reqparser_get.parse_args()
+        if args.status is not None:
             entities = Waixie.query.filter_by(status = AfterServiceStatus[args['status']].value).all()
         else:
-            entities = Waixie.query.all()
+            entities = Waixie.query.join(User, Waixie.creater_guid == User.userName)\
+                        .filter(User.userName == "mac")\
+                        .all()
+            abnormal_products = Waixie
         return {"message": "ok", "data": [e.to_json() for e in entities], "status": 0}, 200
+
     def post(self):
         args = self.reqparser.parse_args()
-        entity = Waixie(status=AfterServiceStatus["created"].value, workflow_status=WorkflowStatus['in_progress'].value, **args)
+
+        args.status = AfterServiceStatus["created"].value
+        args.workflow_status = WorkflowStatus['in_progress'].value
+        if args.creater_guid is not None:
+            args.creater_guid = User.query.filter_by(userName=args.creater_guid).first().userName
+        entity = Waixie(**args)
         db.session.add(entity)
         db.session.commit()
+        if request.json["abnormal_products"] is not None:
+            abnormal_products = request.json["abnormal_products"]
+            for product in abnormal_products:
+                entity_product = AbnormalProduct(itemCode=product["itemCode"], workflowId=entity.id, remark=product["remark"])
+                db.session.add(entity_product)
+                #pdb.set_trace()
+
+                db.session.commit()
 
         return {"message": "ok", "status": 0}, 200
 
@@ -246,5 +297,5 @@ api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterser
 api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice_order_journals")
 
 if __name__ == "__main__":
-    manager.run()
-    #app.run(host='0.0.0.0', debug=True, port=5050)
+    #manager.run()
+    app.run(host='0.0.0.0', debug=True, port=5050)
