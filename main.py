@@ -13,9 +13,13 @@ import os, json
 
 base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = \
-       "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
-#        "mssql+pymssql://BS-Prt:123123@192.168.1.253:1433/BSPRODUCTCENTER?charset=utf8"
+if os.environ["FLASK_ENV"] == "development":
+    app.config['SQLALCHEMY_DATABASE_URI'] = \
+        "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = \
+        "mssql+pymssql://BS-Prt:123123@192.168.1.253:1433/BSPRODUCTCENTER?charset=utf8"
+#        "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
 #        'sqlite:///%s' % os.path.join(base_dir, 'data.sqlite')
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -351,5 +355,8 @@ api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterser
 api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice_order_journals")
 
 if __name__ == "__main__":
-    #manager.run()
-    app.run(host='0.0.0.0', debug=True, port=5050)
+    if os.environ["FLASK_ENV"] == "development":
+        #manager.run()
+        app.run(host='0.0.0.0', debug=True, port=5050)
+    else:
+        app.run(host='0.0.0.0', debug=True, port=5050)
