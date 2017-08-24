@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+# Here be dragons
+#1 the foreign key with no performance imporving in sqlserver, so you got me
+#2 the production_database is tooooo fuck me up
+#3 the mother fucker flask is not as friendly as rails treated
+#4 why can they pay me off each day so i would fuck up right now
+#5 is it talking can deal with the deadline problem
+#6 why i come, come for what??
 from flask import Flask, url_for, request, jsonify, Response
 from flask_script import Manager, Shell
 from flask_sqlalchemy import SQLAlchemy
@@ -13,7 +19,7 @@ import os, json
 
 base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
-if os.environ["FLASK_ENV"] == "development":
+if os.environ["FLASK_ENV"] != "development":
     app.config['SQLALCHEMY_DATABASE_URI'] = \
         "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
 else:
@@ -25,8 +31,8 @@ app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 manager = Manager(app)
 db = SQLAlchemy(app)
-api = Api(app)
 mirgrate = Migrate(app, db)
+api = Api(app)
 manager.add_command('db', MigrateCommand)
 
 """
@@ -77,7 +83,7 @@ class AbnormalProduct(db.Model):
     __tablename__ = "T_PRT_AbnormalProduct"
     id = db.Column(db.Integer, primary_key=True)
     skuCode = db.Column(db.String(100))
-    waixieid = db.Column(db.Integer, db.ForeignKey('T_AfterService_Workflows.id'))
+    waixieid = db.Column(db.Integer)
     remark = db.Column(db.Text)
 
     def to_json(self):
@@ -86,7 +92,7 @@ class AbnormalProduct(db.Model):
             "id": self.id,
             "skuCode": self.skuCode,
             "remark": self.remark,
-            "product_itemName": product_entity.itemName
+            "product_itemName": product_entity.itemName if product_entity is not None else ""
         }
 
 
@@ -108,10 +114,10 @@ class Waixie(db.Model):
     customer_id = db.Column(db.Integer) #客户id， user表id
     creater_id = db.Column(db.Integer) #创建者id, user表id
     saler_id = db.Column(db.Integer)     #销售者id, user表id
-    abnormal_products = db.relationship("AbnormalProduct", backref="T_PRT_AbnormalProduct", 
-                                        lazy='dynamic')
-    jouranls = db.relationship('WorkflowJournal', backref='T_AfterService_Workflows',
-                                lazy='dynamic')
+    # abnormal_products = db.relationship("AbnormalProduct", backref="T_PRT_AbnormalProduct", 
+    #                                     lazy='dynamic')
+    # jouranls = db.relationship('WorkflowJournal', backref='T_AfterService_Workflows',
+    #                             lazy='dynamic')
 
     def __init__(self, *args, **kwargs):
         today = date.today()
@@ -127,6 +133,7 @@ class Waixie(db.Model):
 
 
     def to_json(self):
+        self.abnormal_products = AbnormalProduct.query.filter_by(waixieid = self.id)
         return {
             'id': self.id,
             'serial_number': self.serial_number,
@@ -148,7 +155,7 @@ class WorkflowJournal(db.Model):
     __tablename__ = 'T_Workflow_Journals'
     id = db.Column(db.Integer, primary_key=True)
     # Todo: find the way to mock the polymorphic
-    workflow_id = db.Column(db.Integer, db.ForeignKey('T_AfterService_Workflows.id'))
+    workflow_id = db.Column(db.Integer)
     workflow_type = db.Column(db.String(100))
     source = db.Column(db.Integer, nullable=False)
     destination = db.Column(db.Integer, nullable=False)
@@ -310,13 +317,14 @@ class OrderListAPI(Resource):
         args = self._order_post_params()
         
         entity = Waixie(**args)
+        db.session.add(entity)
+        db.session.commit()
         if request.json["abnormal_products"] is not None:
             abnormal_products = request.json["abnormal_products"]
             for product in abnormal_products:
-                entity_product = AbnormalProduct(skuCode=product["skuCode"], remark=product["remark"])
-                entity.abnormal_products.append(entity_product)
+                entity_product = AbnormalProduct(skuCode=product["skuCode"], remark=product["remark"], waixieid=entity.id)
+                db.session.add(entity_product)
 
-        db.session.add(entity)
         db.session.commit()
         return {"message": "ok", "data": entity.to_json(), "status": 0}, 200
 
@@ -356,7 +364,7 @@ api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', en
 
 if __name__ == "__main__":
     if os.environ["FLASK_ENV"] == "development":
-        #manager.run()
-        app.run(host='0.0.0.0', debug=True, port=5050)
+        manager.run()
+        #app.run(host='0.0.0.0', debug=True, port=5050)
     else:
         app.run(host='0.0.0.0', debug=True, port=5050)
