@@ -41,8 +41,9 @@ def simple_put_test():
     data = fake_waixie()
     data['serial_number'] = 'SH201707040001'
     data['operation'] = 'done'
+    data['operator_name'] = 'christmas father'
     #resp = requests.put('http://192.168.3.172:5050/api/v1/afterservice/orders/1', json=data)
-    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/1', json=data)
+    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/10', json=data)
 
     print resp.json()
 def simple_get_one_test():

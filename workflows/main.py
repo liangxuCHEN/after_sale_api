@@ -26,7 +26,7 @@ AfterServiceStatus = Enum('after_service_status', " ".join(after_service_status)
 
 workflow_trigger = [
     {'trigger': 'open', 'source':'halt', 'dest': 'in_progress'},
-    {'trigger': 'stop', 'source':'in_progress', 'dest': 'hale'},
+    {'trigger': 'stop', 'source':'in_progress', 'dest': 'halt'},
     {'trigger': 'done', 'source':'in_progress', 'dest': 'done'},
     {'trigger': 'open', 'source':'overdue', 'dest': 'in_progress'},
     {'trigger': 'timeout', 'source':'in_progress', 'dest': 'overdue'},

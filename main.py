@@ -9,7 +9,7 @@ from flask_restful import Api, Resource, reqparse
 from workflows.AfterService import Workflow, WorkflowStatus, AfterServiceStatus
 from transitions import MachineError
 from datetime import datetime, date, timedelta
-import os, json, pdb
+import os, json
 
 base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
@@ -135,8 +135,8 @@ class Waixie(db.Model):
             'expired_status': self.expired_status,
             'summited_at': self.summited_at.strftime("%Y-%m-%d %H:%M:%s") if self.summited_at is not None else "",
             'material_supplier_id': self.material_supplier_id,
-            'status': self.status,
-            'workflow_status': self.workflow_status,
+            'status': AfterServiceStatus(self.status).name,
+            'workflow_status': WorkflowStatus(self.workflow_status).name,
             'abnormal_porducts': [e.to_json() for e in self.abnormal_products]
         }
 
@@ -152,6 +152,7 @@ class WorkflowJournal(db.Model):
     created_at = db.Column(db.DateTime)
     updated_at = db.Column(db.DateTime)
     remark = db.Column(db.Text)
+    operator_name = db.Column(db.String)
 
     def to_json(self):
         return {
@@ -160,7 +161,8 @@ class WorkflowJournal(db.Model):
             'source': self.source,
             'dest': self.destination,
             'trigger': self.trigger,
-            'remark': self.remark
+            'remark': self.remark,
+            'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%s") if self.created_at is not None else "",
         }
 
 # 后面就是业务逻辑了
@@ -195,14 +197,14 @@ def api_post_user():
 class OrderAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
-        self.reqparser.add_argument("creater_id", type=unicode, location="json")
         self.reqparser.add_argument("type", type=unicode, location="json")
         self.reqparser.add_argument("customer_id", type=unicode, location="json")
         self.reqparser.add_argument("serial_number", type=unicode, location="json")
         self.reqparser.add_argument("material_number", type=unicode, location="json")
-        self.reqparser.add_argument("material_supplier_id", type=unicode, location="json")
+        self.reqparser.add_argument("material_supplier_name", type=unicode, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
         self.reqparser.add_argument("operation", type=unicode, location="json")
+        self.reqparser.add_argument("operator_name", type=unicode, location="json")
 
         super(OrderAPI, self).__init__()
 
@@ -215,9 +217,11 @@ class OrderAPI(Resource):
 
     # 有待完善的逻辑重点
     def put(self, id):
-        args = self.reqparser.parse_args()
+        args = self._order_put_params()
         flag = args["operation"]
         del args["operation"]
+        operator_name = args["operator_name"]
+        del args["operator_name"]
         #Waixie.query.filter_by(id=id).update(args)
         entity = Waixie.query.get(id)
         if entity is None:
@@ -232,7 +236,7 @@ class OrderAPI(Resource):
                     source = flow.status_code()
                     flow.trigger(flag)
                     destination = flow.status_code()
-                    jouranl = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, trigger=flag)
+                    jouranl = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, trigger=flag, operator_name=operator_name)
                     db.session.add(jouranl)
                     args["status"] = flow.status_code()
             except MachineError as e:
@@ -251,6 +255,18 @@ class OrderAPI(Resource):
         else:
             return {"message":"invalid operation", "status": 500}
 
+    def _order_put_params(self):
+        args = self.reqparser.parse_args()
+
+        # 客户与供应商的关系未知
+        # if args.customer_name is not None:
+        #     args.customer_id = User.query.filter_by(userName=args.customer_name).first().id
+        if args.material_supplier_name is not None:
+            material_supplier = Supplier.query.filter_by(supplierName=args.material_supplier_name).first()
+            if material_supplier is not None: args.material_supplier_id = material_supplier.id
+            del args["material_supplier_name"]
+        return args
+
 class OrderListAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
@@ -266,13 +282,16 @@ class OrderListAPI(Resource):
 
         self.reqparser_get = reqparse.RequestParser()
         self.reqparser_get.add_argument("status", type=unicode)
+        self.reqparser_get.add_argument("workflow_status", type=unicode)
         self.reqparser_get.add_argument("creater_name", type=unicode)
         super(OrderListAPI, self).__init__()
 
     def get(self):
         args = self.reqparser_get.parse_args()
-        if args.status is not None or args.creater_name is not None:
+        if args.status is not None or args.creater_name is not None or args.workflow_status is not None:
             query = Waixie.query.join(User, Waixie.creater_id==User.id)
+            if args.workflow_status is not None:
+                query = query.filter(Waixie.workflow_status == WorkflowStatus[args.workflow_status].value)
             if args.status is not None:
                 query = query.filter(Waixie.status == AfterServiceStatus[args.status].value)
             if args.creater_name is not None:
@@ -332,5 +351,5 @@ api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterser
 api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice_order_journals")
 
 if __name__ == "__main__":
-    manager.run()
-    #app.run(host='0.0.0.0', debug=True, port=5050)
+    #manager.run()
+    app.run(host='0.0.0.0', debug=True, port=5050)
