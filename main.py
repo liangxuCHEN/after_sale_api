@@ -19,7 +19,8 @@ import os, json
 
 base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
-if os.environ["FLASK_ENV"] != "development":
+
+if os.environ["FLASK_ENV"] == "development":
     app.config['SQLALCHEMY_DATABASE_URI'] = \
         "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
 else:
