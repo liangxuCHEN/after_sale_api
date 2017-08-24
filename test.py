@@ -6,14 +6,13 @@ import requests, json, sys
 def fake_waixie():
     required_field = {
         "type": "order_type",
-        "customer_guid": "ACGUNDAM",
-        "creater_guid": "creater_guid",
+        "customer_name": "supplier201708241154",
     }
     optional_field = {
-        "material_number": "物料编号",
-        "material_supplier_guid": "原材料供应商",
-        "creater_guid": "mac",
-        "abnormal_products": [{"itemCode":"1231313", "remark":"fuckme"}, {"itemCode":"12313135", "remark":"fuck2me"}]
+        "material_number": "sku2017082411541503546850",
+        "material_supplier_name": "supplier201708241154",
+        "creater_name": "mac201708241154",
+        "abnormal_products": [{"skuCode":"sku201708241154", "remark":"fuckme"}, {"skuCode":"sku201708241154", "remark":"fuck2me"}]
     }
     after_filled = {
         "saler_name": "售后专员",
@@ -42,8 +41,8 @@ def simple_put_test():
     data = fake_waixie()
     data['serial_number'] = 'SH201707040001'
     data['operation'] = 'done'
-    #resp = requests.put('http://192.168.3.172:5050/api/v1/afterservice/orders/5', json=data)
-    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/5', json=data)
+    #resp = requests.put('http://192.168.3.172:5050/api/v1/afterservice/orders/1', json=data)
+    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/1', json=data)
 
     print resp.json()
 def simple_get_one_test():
@@ -54,6 +53,10 @@ def simple_get_one_test():
 def simple_get_journals_test():
     resp = requests.get('http://192.168.3.172:5050/api/v1/afterservice/orders/journals')
     #resp = requests.get('http://localhost:5050/api/v1/afterservice/orders/journals')
+    print resp.json()
+
+def simple_delete_test():
+    resp = requests.delete('http://localhost:5050/api/v1/afterservice/orders/8')
     print resp.json()
 
 if __name__ == "__main__":
