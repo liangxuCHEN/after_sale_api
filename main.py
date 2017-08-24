@@ -296,6 +296,8 @@ class OrderListAPI(Resource):
         self.reqparser_get.add_argument("status", type=unicode)
         self.reqparser_get.add_argument("workflow_status", type=unicode)
         self.reqparser_get.add_argument("creater_name", type=unicode)
+        self.reqparser_get.add_argument("page", type=int)
+        self.reqparser_get.add_argument("per_page", type=int)
         super(OrderListAPI, self).__init__()
 
     def get(self):
@@ -308,10 +310,14 @@ class OrderListAPI(Resource):
                 query = query.filter(Waixie.status == AfterServiceStatus[args.status].value)
             if args.creater_name is not None:
                 query = query.filter(User.userName == args.creater_name) 
+        else:
+            query = Waixie.query
+        
+        if args.page and args.per_page:
+            entities = query.paginate(args.page, args.per_page).items
+        else:
             entities = query.all()
 
-        else:
-            entities = Waixie.query.all()
         return {"message": "ok", "data": [e.to_json() for e in entities], "status": 0}, 200
 
     def post(self):
