@@ -7,6 +7,7 @@
 #4 why can they pay me off each day so i would fuck up right now
 #5 is it talking can deal with the deadline problem
 #6 why i come, come for what??
+#7 the mother fucker is that you should treat 2 workflow like 1
 from flask import Flask, url_for, request, jsonify, Response
 from flask_script import Manager, Shell
 from flask_sqlalchemy import SQLAlchemy
@@ -16,6 +17,7 @@ from workflows.AfterService import Workflow, WorkflowStatus, AfterServiceStatus
 from transitions import MachineError
 from datetime import datetime, date, timedelta
 import os, json
+from aenum import Enum
 
 base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
@@ -39,8 +41,11 @@ manager.add_command('db', MigrateCommand)
 """
 粗糙试用版本，主要提供线上对接用api，顺便拿点数据，
 试试部署方案，由于还有其他相关工作内容的整合，拖着点时间
-外协即是waixie
+外协即是waixie，然后sqlalchemy这东西的查询优化会很作死
 """
+# 责任报告的异常类别
+AbnormalRank = Enum('workflow', ' '.join(["emergency", "normal", "ignored"]))
+
 
 # 还原表结构, 从思考到直接放弃
 class Product(db.Model):
@@ -80,12 +85,85 @@ class User(db.Model):
         }
 
 # 以下是新表 Todo: 处理一下db.String的问题
-class AbnormalProduct(db.Model):
-    __tablename__ = "T_PRT_AbnormalProduct"
+class Workflow_t(db.Model):
+    __tablename__ = 'T_AS_Workflow'
     id = db.Column(db.Integer, primary_key=True)
-    skuCode = db.Column(db.String(100))
-    waixieid = db.Column(db.Integer)
+    name = db.Column(db.String(100))
+    type = db.Column(db.String(100))
+    service_status = db.Column(db.Integer, nullable=False)
+    workflow_status = db.Column(db.Integer, nullable=False)
+    order_id = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'workflow',
+        'polymorphic_on': type
+    }
+
+    def __repr__(self):
+        return "%(__class__.__name__)s(type=%(type)r, order_id=%(order_id)r, name=%(name)r,\
+                 service_status=%(service_status)r, workflow_status=%(workflow_status)r)" % self
+
+class AfterServiceWorkflow(Workflow_t):
+    __tablename__ = None
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'AfterService_WaixieOrder'
+    }
+
+    # def __repr__(self):
+    #     return "%(__class__.__name__)s(type=%(type)r, order_id=%(order_id)r, name=%(name)r,\
+    #              service_status=%(service_status)r, workflow_status=%(workflow_status)r)" % self
+
+class DeductionOrder(db.Model):
+    __tablename__ = "T_AS_DeductionOrder"
+    id = db.Column(db.Integer, primary_key=True)
+    serial_number = db.Column(db.String(100))
+
+
+class DutyReport(db.Model):
+    __tablename__ = "T_AS_DutyReport"
+    id = db.Column(db.Integer, primary_key=True)
+    abnormal_type = db.Column(db.Integer)
+    abnormal_reason = db.Column(db.Text)
+    publishment = db.Column(db.Text)
+    publish_to = db.Column(db.String(50))
+    compensation = db.Column(db.Integer)
+    duty_to_id = db.Column(db.Integer)
+    duty_to = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
+
+    order_id = db.Column(db.Integer)
+
+    def to_json(self):
+        
+        return {
+            "id": self.id,
+            "abnormal_type": self.abnormal_type,
+            "abnormal_reason": self.abnormal_reason,
+            "publishment": self.publishment,
+            "publish_to": self.publish_to,
+            "compensation": self.compensation,
+            "duty_to_id": self.duty_to_id,
+            "duty_to": self.duty_to
+        }
+        
+
+class AbnormalProduct(db.Model):
+    __tablename__ = "T_AS_AbnormalProduct"
+    id = db.Column(db.Integer, primary_key=True)
+    skuCode = db.Column(db.String(100)) #对应的外键
+    product_id = db.Column(db.Integer) 
+    waixieOrder_id = db.Column(db.Integer)    #
     remark = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
+
+    # WaixieOrder = db.relationship("WaixieOrder",
+    #         primaryjoin="db.remote()"
+    #     )
 
     def to_json(self):
         product_entity = Product.query.filter_by(skuCode = self.skuCode).first()
@@ -96,17 +174,14 @@ class AbnormalProduct(db.Model):
             "product_itemName": product_entity.itemName if product_entity is not None else ""
         }
 
-
-class Waixie(db.Model):
-    __tablename__ = 'T_AfterService_Workflows'
+class WaixieOrder(db.Model):
+    __tablename__ = 'T_AS_WaixieOrder'
     id = db.Column(db.Integer, primary_key=True)  
     serial_number = db.Column(db.String(14)) #单据编号
     type = db.Column(db.String(100)) #单据类型
     expired_status = db.Column(db.String(100))
     summited_at = db.Column(db.DateTime)
     material_number = db.Column(db.String(100))
-    created_at = db.Column(db.DateTime)
-    updated_at = db.Column(db.DateTime)
     status = db.Column(db.Integer, nullable=False)
     workflow_status = db.Column(db.Integer, nullable=False)
     remark = db.Column(db.Text)
@@ -115,45 +190,54 @@ class Waixie(db.Model):
     customer_id = db.Column(db.Integer) #客户id， user表id
     creater_id = db.Column(db.Integer) #创建者id, user表id
     saler_id = db.Column(db.Integer)     #销售者id, user表id
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())    
     # abnormal_products = db.relationship("AbnormalProduct", backref="T_PRT_AbnormalProduct", 
     #                                     lazy='dynamic')
     # jouranls = db.relationship('WorkflowJournal', backref='T_AfterService_Workflows',
     #                             lazy='dynamic')
+    # workflow = db.relationship(Workflow,
+    #                 primaryjoin=db.remote(Workflow.order_id) == \
+    #                     db.foreign(id)
+    #             )
+
 
     def __init__(self, *args, **kwargs):
         today = date.today()
         datetime_today = datetime.strptime(str(today),'%Y-%m-%d') 
-        count = len(Waixie.query.filter(
-            Waixie.created_at >= datetime_today,
-            Waixie.created_at <= datetime_today + timedelta(days=1)
+        count = len(WaixieOrder.query.filter(
+            WaixieOrder.created_at >= datetime_today,
+            WaixieOrder.created_at <= datetime_today + timedelta(days=1)
         ).all()) + 1
         self.serial_number = "SH%s%s" %(datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count))
-        self.created_at = datetime.now()
-        self.updated_at = datetime.now()
-        super(Waixie, self).__init__(*args, **kwargs)
+        #self.created_at = datetime.now()
+        #self.updated_at = datetime.now()
+        super(WaixieOrder, self).__init__(*args, **kwargs)
 
 
     def to_json(self):
-        self.abnormal_products = AbnormalProduct.query.filter_by(waixieid = self.id)
+        self.abnormal_products = AbnormalProduct.query.filter_by(waixieOrder_id = self.id)
+        self.duty_report = DutyReport.query.filter_by(order_id = self.id).first()
         return {
             'id': self.id,
             'serial_number': self.serial_number,
             'type': self.type,
             'customer_id': self.customer_id,
             'material_number': self.material_number,
-            'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%s") if self.created_at is not None else "",
-            'updated_at': self.updated_at.strftime("%Y-%m-%d %H:%M:%s") if self.updated_at is not None else "",
+            'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at is not None else "",
+            'updated_at': self.updated_at.strftime("%Y-%m-%d %H:%M:%S") if self.updated_at is not None else "",
             'saler_id': self.saler_id,
             'expired_status': self.expired_status,
-            'summited_at': self.summited_at.strftime("%Y-%m-%d %H:%M:%s") if self.summited_at is not None else "",
+            'summited_at': self.summited_at.strftime("%Y-%m-%d %H:%M:%S") if self.summited_at is not None else "",
             'material_supplier_id': self.material_supplier_id,
             'status': AfterServiceStatus(self.status).name,
             'workflow_status': WorkflowStatus(self.workflow_status).name,
-            'abnormal_porducts': [e.to_json() for e in self.abnormal_products]
+            'abnormal_porducts': [e.to_json() for e in self.abnormal_products],
+            'duty_report': self.duty_report.to_json() if self.duty_report is not None else ""
         }
 
 class WorkflowJournal(db.Model):
-    __tablename__ = 'T_Workflow_Journals'
+    __tablename__ = 'T_AS_Workflow_Journals'
     id = db.Column(db.Integer, primary_key=True)
     # Todo: find the way to mock the polymorphic
     workflow_id = db.Column(db.Integer)
@@ -161,8 +245,8 @@ class WorkflowJournal(db.Model):
     source = db.Column(db.Integer, nullable=False)
     destination = db.Column(db.Integer, nullable=False)
     trigger = db.Column(db.String(100))
-    created_at = db.Column(db.DateTime)
-    updated_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
     remark = db.Column(db.Text)
     operator_name = db.Column(db.String)
 
@@ -174,9 +258,10 @@ class WorkflowJournal(db.Model):
             'dest': self.destination,
             'trigger': self.trigger,
             'remark': self.remark,
-            'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%s") if self.created_at is not None else "",
+            'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at is not None else "",
         }
 
+##################
 # 后面就是业务逻辑了
 @app.route('/')
 def api_root():
@@ -184,7 +269,7 @@ def api_root():
 
 @app.route('/sales')
 def api_sales():
-    return "List of %s<total: %d>" % (url_for('api_sales'), len(Waixie.query.all()))
+    return "List of %s<total: %d>" % (url_for('api_sales'), len(WaixieOrder.query.all()))
 
 @app.route('/sales/<sale_id>')
 def api_sale(sale_id):
@@ -196,13 +281,13 @@ def api_test():
 
 @app.route('/data/fack')
 def api_post_user():
-    datetime_str = datetime.now().strftime("%Y%m%d%H%M%s")
-    user_entity = User(userName="mac%s" %datetime_str)
-    product_entity = Product(skuCode="sku%s" %datetime_str, itemName="name%s" %datetime_str)
-    supplier_entity = Supplier(supplierName="supplier%s" %datetime_str)
+    # datetime_str = datetime.now().strftime("%Y%m%d%H%M%S")
+    # user_entity = User(userName="mac%s" %datetime_str)
+    # product_entity = Product(skuCode="sku%s" %datetime_str, itemName="name%s" %datetime_str)
+    # supplier_entity = Supplier(supplierName="supplier%s" %datetime_str)
 
-    db.session.add_all([user_entity, product_entity, supplier_entity])
-    db.session.commit() 
+    # db.session.add_all([user_entity, product_entity, supplier_entity])
+    # db.session.commit() 
     return "fack date add one"  
 
 
@@ -221,7 +306,7 @@ class OrderAPI(Resource):
         super(OrderAPI, self).__init__()
 
     def get(self, id):
-        entity = Waixie.query.get(id)
+        entity = WaixieOrder.query.get(id)
         if entity is None:
             return {"message": "no this order record", "status": 404}, 200
         else:
@@ -234,8 +319,8 @@ class OrderAPI(Resource):
         del args["operation"]
         operator_name = args["operator_name"]
         del args["operator_name"]
-        #Waixie.query.filter_by(id=id).update(args)
-        entity = Waixie.query.get(id)
+        #WaixieOrder.query.filter_by(id=id).update(args)
+        entity = WaixieOrder.query.get(id)
         if entity is None:
             return {"message": "no this order record", "status": 404}, 200
         else:
@@ -254,12 +339,12 @@ class OrderAPI(Resource):
             except MachineError as e:
                 flow.workflow.done()
                 args["workflow_status"] = flow.workflow.status_code()
-            Waixie.query.filter_by(id=id).update(args)
+            WaixieOrder.query.filter_by(id=id).update(args)
             db.session.commit()
         return {"message": "ok", "status": 0}, 200
 
     def delete(self, id):
-        entity = Waixie.query.get(id)
+        entity = WaixieOrder.query.get(id)
         if entity is not None and entity.status == AfterServiceStatus["waitting"].value:
             db.session.delete(entity)
             db.session.commit()
@@ -291,6 +376,7 @@ class OrderListAPI(Resource):
         self.reqparser.add_argument("remark", type=unicode, location="json")
         # 列表改在request中处理
         #self.reqparser.add_argument("abnormal_products", type=list, location="json")
+        #self.reqparser.add_argument("dutyReport", type=dict, location="json")
 
         self.reqparser_get = reqparse.RequestParser()
         self.reqparser_get.add_argument("status", type=unicode)
@@ -303,15 +389,15 @@ class OrderListAPI(Resource):
     def get(self):
         args = self.reqparser_get.parse_args()
         if args.status is not None or args.creater_name is not None or args.workflow_status is not None:
-            query = Waixie.query.join(User, Waixie.creater_id==User.id)
+            query = WaixieOrder.query.join(User, WaixieOrder.creater_id==User.id)
             if args.workflow_status is not None:
-                query = query.filter(Waixie.workflow_status == WorkflowStatus[args.workflow_status].value)
+                query = query.filter(WaixieOrder.workflow_status == WorkflowStatus[args.workflow_status].value)
             if args.status is not None:
-                query = query.filter(Waixie.status == AfterServiceStatus[args.status].value)
+                query = query.filter(WaixieOrder.status == AfterServiceStatus[args.status].value)
             if args.creater_name is not None:
                 query = query.filter(User.userName == args.creater_name) 
         else:
-            query = Waixie.query
+            query = WaixieOrder.query
         
         if args.page and args.per_page:
             entities = query.paginate(args.page, args.per_page).items
@@ -323,14 +409,21 @@ class OrderListAPI(Resource):
     def post(self):
         args = self._order_post_params()
         
-        entity = Waixie(**args)
+        entity = WaixieOrder(**args)
         db.session.add(entity)
         db.session.commit()
         if request.json["abnormal_products"] is not None:
             abnormal_products = request.json["abnormal_products"]
             for product in abnormal_products:
-                entity_product = AbnormalProduct(skuCode=product["skuCode"], remark=product["remark"], waixieid=entity.id)
+                entity_product = AbnormalProduct(skuCode=product["skuCode"], remark=product["remark"], waixieOrder_id=entity.id)
                 db.session.add(entity_product)
+        
+        if request.json["duty_report"]:
+            duty_reports = request.json["duty_report"] if type(request.json["duty_report"]) is list else [request.json["duty_report"]] 
+            for report in duty_reports:
+                report["order_id"] = entity.id
+                entity_report = DutyReport(**report)
+                db.session.add(entity_report)
 
         db.session.commit()
         return {"message": "ok", "data": entity.to_json(), "status": 0}, 200
@@ -371,7 +464,7 @@ api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', en
 
 if __name__ == "__main__":
     if os.environ["FLASK_ENV"] == "development":
-        manager.run()
-        #app.run(host='0.0.0.0', debug=True, port=5050)
+        #manager.run()
+        app.run(host='0.0.0.0', debug=True, port=5050)
     else:
         app.run(host='0.0.0.0', debug=True, port=5050)

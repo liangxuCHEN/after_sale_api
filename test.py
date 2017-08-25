@@ -12,7 +12,8 @@ def fake_waixie():
         "material_number": "sku2017082411541503546850",
         "material_supplier_name": "supplier201708241154",
         "creater_name": "mac201708241154",
-        "abnormal_products": [{"skuCode":"sku201708241154", "remark":"fuckme"}, {"skuCode":"sku201708241154", "remark":"fuck2me"}]
+        "abnormal_products": [{"skuCode":"sku201708241154", "remark":"fuckme"}, {"skuCode":"sku201708241154", "remark":"fuck2me"}],
+        "duty_report": {"abnormal_type": 12}
     }
     after_filled = {
         "saler_name": "售后专员",
@@ -59,6 +60,10 @@ def simple_get_journals_test():
 def simple_delete_test():
     resp = requests.delete('http://localhost:5050/api/v1/afterservice/orders/8')
     print resp.json()
+
+
+# 更加细化的测试
+
 
 if __name__ == "__main__":
     method = sys.argv[1]
