@@ -408,6 +408,7 @@ class OrderListAPI(Resource):
         self.reqparser.add_argument("material_supplier_name", type=unicode, location="json")
         self.reqparser.add_argument("material_supplier_id", type=int, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
+        self.reqparser.add_argument("type", type=unicode, location="json")
         # 列表改在request中处理
         #self.reqparser.add_argument("abnormal_products", type=list, location="json")
         #self.reqparser.add_argument("dutyReport", type=dict, location="json")
