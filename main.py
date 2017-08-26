@@ -52,9 +52,9 @@ AbnormalRank = Enum('workflow', ' '.join(ABNORMALPRODUCT))
 class Product(db.Model):
     __tablename__ = 'T_PRT_AllProduct'
     id = db.Column(db.Integer, primary_key=True)
-    itemName = db.Column(db.String(None))
-    skuCode = db.Column(db.String(None))
-    itemCode = db.Column(db.String(None))
+    itemName = db.Column(db.Unicode(None))
+    skuCode = db.Column(db.Unicode(None))
+    itemCode = db.Column(db.Unicode(None))
 
     def to_json(self):
         return {
@@ -67,15 +67,15 @@ class Product(db.Model):
 class Supplier(db.Model):
     __tablename__ = "T_PRT_SupplierBasicInfo"
     id = db.Column(db.Integer, primary_key=True)
-    supplierName = db.Column(db.String(None))
+    supplierName = db.Column(db.Unicode(None))
 
 
 class User(db.Model):
     __tablename__ = 'T_SYS_User'
     id = db.Column(db.Integer, primary_key=True)
-    userName = db.Column(db.String(None))
-    dptNames = db.Column(db.String(None))
-    dptIds = db.Column(db.String(None))
+    userName = db.Column(db.Unicode(None))
+    dptNames = db.Column(db.Unicode(None))
+    dptIds = db.Column(db.Unicode(None))
 
     def to_json(self):
         return {
@@ -89,8 +89,8 @@ class User(db.Model):
 class Workflow_t(db.Model):
     __tablename__ = 'T_AS_Workflow'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    type = db.Column(db.String(100))
+    name = db.Column(db.Unicode(100))
+    type = db.Column(db.Unicode(100))
     service_status = db.Column(db.Integer, nullable=False)
     workflow_status = db.Column(db.Integer, nullable=False)
     order_id = db.Column(db.Integer)
@@ -120,8 +120,8 @@ class AfterServiceWorkflow(Workflow_t):
 class DeductionOrder(db.Model):
     __tablename__ = "T_AS_DeductionOrder"
     id = db.Column(db.Integer, primary_key=True)
-    serial_number = db.Column(db.String(100))
-    supplier_name = db.Column(db.String(100))
+    serial_number = db.Column(db.Unicode(100))
+    supplier_name = db.Column(db.Unicode(100))
     supplier_id = db.Column(db.Integer)
     
 
@@ -130,12 +130,12 @@ class DutyReport(db.Model):
     __tablename__ = "T_AS_DutyReport"
     id = db.Column(db.Integer, primary_key=True)
     abnormal_type = db.Column(db.Integer)
-    abnormal_reason = db.Column(db.Text)
-    publishment = db.Column(db.Text)
-    publish_to = db.Column(db.String(50))
+    abnormal_reason = db.Column(db.UnicodeText)
+    publishment = db.Column(db.UnicodeText)
+    publish_to = db.Column(db.Unicode(50))
     compensation = db.Column(db.Integer)
     duty_to_id = db.Column(db.Integer)
-    duty_to = db.Column(db.String(100))
+    duty_to = db.Column(db.Unicode(100))
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
 
@@ -158,10 +158,10 @@ class DutyReport(db.Model):
 class AbnormalProduct(db.Model):
     __tablename__ = "T_AS_AbnormalProduct"
     id = db.Column(db.Integer, primary_key=True)
-    skuCode = db.Column(db.String(100)) #对应的外键
+    skuCode = db.Column(db.Unicode(100)) #对应的外键
     product_id = db.Column(db.Integer) 
     waixieOrder_id = db.Column(db.Integer)    #
-    remark = db.Column(db.Text)
+    remark = db.Column(db.UnicodeText)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
 
@@ -181,23 +181,23 @@ class AbnormalProduct(db.Model):
 class WaixieOrder(db.Model):
     __tablename__ = 'T_AS_WaixieOrder'
     id = db.Column(db.Integer, primary_key=True)  
-    serial_number = db.Column(db.String(14)) #单据编号
-    type = db.Column(db.String(100)) #单据类型
-    expired_status = db.Column(db.String(100))
+    serial_number = db.Column(db.Unicode(14)) #单据编号
+    type = db.Column(db.Unicode(100)) #单据类型
+    expired_status = db.Column(db.Unicode(100))
     summited_at = db.Column(db.DateTime)
-    material_number = db.Column(db.String(100))
+    material_number = db.Column(db.Unicode(100))
     status = db.Column(db.Integer, nullable=False)
     workflow_status = db.Column(db.Integer, nullable=False)
-    remark = db.Column(db.Text)
+    remark = db.Column(db.UnicodeText)
     
     material_supplier_id = db.Column(db.Integer) # 保留原有的表结构, 供应商表id
-    material_supplier_name = db.Column(db.String(100))
+    material_supplier_name = db.Column(db.Unicode(100))
     customer_id = db.Column(db.Integer) #客户id， user表id
-    customer_name = db.Column(db.String(100))
+    customer_name = db.Column(db.Unicode(100))
     creater_id = db.Column(db.Integer) #创建者id, user表id
-    creater_name = db.Column(db.String(100))
+    creater_name = db.Column(db.Unicode(100))
     saler_id = db.Column(db.Integer)     #销售者id, user表id
-    saler_name = db.Column(db.String(100))
+    saler_name = db.Column(db.Unicode(100))
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())    
     # abnormal_products = db.relationship("AbnormalProduct", backref="T_PRT_AbnormalProduct", 
@@ -293,9 +293,9 @@ def api_test():
 @app.route('/data/fack')
 def api_post_user():
     datetime_str = datetime.now().strftime("%Y%m%d%H%M")
-    user_entity = User(userName="mac%s" %datetime_str)
-    product_entity = Product(skuCode="sku%s" %datetime_str, itemName="name%s" %datetime_str)
-    supplier_entity = Supplier(supplierName="supplier%s" %datetime_str)
+    user_entity = User(userName=u"小白")
+    product_entity = Product(skuCode="sku%s" %datetime_str, itemName="TheWorld")
+    supplier_entity = Supplier(supplierName=u"供应一组")
 
     db.session.add_all([user_entity, product_entity, supplier_entity])
     db.session.commit() 

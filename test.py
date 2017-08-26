@@ -16,8 +16,8 @@ def fake_waixie():
         "duty_report": {"abnormal_type": 12}
     }
     after_filled = {
-        "saler_name": "售后专员",
-        "summited_at": "提交时间"
+        "saler_name": u"售后专员",
+        "summited_at": u"提交时间"
     }
 
     required_field.update(optional_field)
