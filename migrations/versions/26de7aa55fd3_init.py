@@ -1,8 +1,8 @@
 """init
 
-Revision ID: 1957ed0dc752
+Revision ID: 26de7aa55fd3
 Revises: 
-Create Date: 2017-08-25 17:49:22.902101
+Create Date: 2017-08-26 08:51:23.699621
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '1957ed0dc752'
+revision = '26de7aa55fd3'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,6 +26,13 @@ def upgrade():
     sa.Column('remark', sa.Text(), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text(u'CURRENT_TIMESTAMP'), nullable=True),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text(u'CURRENT_TIMESTAMP'), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('T_AS_DeductionOrder',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('serial_number', sa.String(length=100), nullable=True),
+    sa.Column('supplier_name', sa.String(length=100), nullable=True),
+    sa.Column('supplier_id', sa.Integer(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('T_AS_DutyReport',
@@ -53,9 +60,13 @@ def upgrade():
     sa.Column('workflow_status', sa.Integer(), nullable=False),
     sa.Column('remark', sa.Text(), nullable=True),
     sa.Column('material_supplier_id', sa.Integer(), nullable=True),
+    sa.Column('material_supplier_name', sa.String(length=100), nullable=True),
     sa.Column('customer_id', sa.Integer(), nullable=True),
+    sa.Column('customer_name', sa.String(length=100), nullable=True),
     sa.Column('creater_id', sa.Integer(), nullable=True),
+    sa.Column('creater_name', sa.String(length=100), nullable=True),
     sa.Column('saler_id', sa.Integer(), nullable=True),
+    sa.Column('saler_name', sa.String(length=100), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text(u'CURRENT_TIMESTAMP'), nullable=True),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text(u'CURRENT_TIMESTAMP'), nullable=True),
     sa.PrimaryKeyConstraint('id')
@@ -115,5 +126,6 @@ def downgrade():
     op.drop_table('T_AS_Workflow')
     op.drop_table('T_AS_WaixieOrder')
     op.drop_table('T_AS_DutyReport')
+    op.drop_table('T_AS_DeductionOrder')
     op.drop_table('T_AS_AbnormalProduct')
     # ### end Alembic commands ###

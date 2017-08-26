@@ -44,7 +44,8 @@ manager.add_command('db', MigrateCommand)
 外协即是waixie，然后sqlalchemy这东西的查询优化会很作死
 """
 # 责任报告的异常类别
-AbnormalRank = Enum('workflow', ' '.join(["emergency", "normal", "ignored"]))
+ABNORMALPRODUCT = ["emergency", "normal", "ignored"]
+AbnormalRank = Enum('workflow', ' '.join(ABNORMALPRODUCT))
 
 
 # 还原表结构, 从思考到直接放弃
@@ -120,6 +121,9 @@ class DeductionOrder(db.Model):
     __tablename__ = "T_AS_DeductionOrder"
     id = db.Column(db.Integer, primary_key=True)
     serial_number = db.Column(db.String(100))
+    supplier_name = db.Column(db.String(100))
+    supplier_id = db.Column(db.Integer)
+    
 
 
 class DutyReport(db.Model):
@@ -187,9 +191,13 @@ class WaixieOrder(db.Model):
     remark = db.Column(db.Text)
     
     material_supplier_id = db.Column(db.Integer) # 保留原有的表结构, 供应商表id
+    material_supplier_name = db.Column(db.String(100))
     customer_id = db.Column(db.Integer) #客户id， user表id
+    customer_name = db.Column(db.String(100))
     creater_id = db.Column(db.Integer) #创建者id, user表id
+    creater_name = db.Column(db.String(100))
     saler_id = db.Column(db.Integer)     #销售者id, user表id
+    saler_name = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())    
     # abnormal_products = db.relationship("AbnormalProduct", backref="T_PRT_AbnormalProduct", 
@@ -218,18 +226,21 @@ class WaixieOrder(db.Model):
     def to_json(self):
         self.abnormal_products = AbnormalProduct.query.filter_by(waixieOrder_id = self.id)
         self.duty_report = DutyReport.query.filter_by(order_id = self.id).first()
+        self.customer = Supplier.query.filter_by(id=self.customer_id).first() or Supplier.query.filter_by(supplierName=self.customer_name).first()
+        self.material_supplier = Supplier.query.filter_by(id=self.material_supplier_id).first() or Supplier.query.filter_by(supplierName=self.material_supplier_id).first()
+        self.creater = User.query.filter_by(id=self.creater_id).first() or User.query.filter_by(userName=self.creater_name).first()
         return {
             'id': self.id,
             'serial_number': self.serial_number,
             'type': self.type,
-            'customer_id': self.customer_id,
+            'customer_name': self.customer.supplierName if self.customer is not None else "",
+            'material_supplier_name': self.material_supplier.supplierName if self.material_supplier is not None else "",
+            'creater': self.creater.userName if self.creater is not None else "",
             'material_number': self.material_number,
             'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at is not None else "",
             'updated_at': self.updated_at.strftime("%Y-%m-%d %H:%M:%S") if self.updated_at is not None else "",
-            'saler_id': self.saler_id,
             'expired_status': self.expired_status,
             'summited_at': self.summited_at.strftime("%Y-%m-%d %H:%M:%S") if self.summited_at is not None else "",
-            'material_supplier_id': self.material_supplier_id,
             'status': AfterServiceStatus(self.status).name,
             'workflow_status': WorkflowStatus(self.workflow_status).name,
             'abnormal_porducts': [e.to_json() for e in self.abnormal_products],
@@ -281,13 +292,13 @@ def api_test():
 
 @app.route('/data/fack')
 def api_post_user():
-    # datetime_str = datetime.now().strftime("%Y%m%d%H%M%S")
-    # user_entity = User(userName="mac%s" %datetime_str)
-    # product_entity = Product(skuCode="sku%s" %datetime_str, itemName="name%s" %datetime_str)
-    # supplier_entity = Supplier(supplierName="supplier%s" %datetime_str)
+    datetime_str = datetime.now().strftime("%Y%m%d%H%M")
+    user_entity = User(userName="mac%s" %datetime_str)
+    product_entity = Product(skuCode="sku%s" %datetime_str, itemName="name%s" %datetime_str)
+    supplier_entity = Supplier(supplierName="supplier%s" %datetime_str)
 
-    # db.session.add_all([user_entity, product_entity, supplier_entity])
-    # db.session.commit() 
+    db.session.add_all([user_entity, product_entity, supplier_entity])
+    db.session.commit() 
     return "fack date add one"  
 
 
@@ -295,13 +306,15 @@ class OrderAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
         self.reqparser.add_argument("type", type=unicode, location="json")
-        self.reqparser.add_argument("customer_id", type=unicode, location="json")
-        self.reqparser.add_argument("serial_number", type=unicode, location="json")
+        #self.reqparser.add_argument("customer_id", type=unicode, location="json")
+        #self.reqparser.add_argument("serial_number", type=unicode, location="json")
         self.reqparser.add_argument("material_number", type=unicode, location="json")
         self.reqparser.add_argument("material_supplier_name", type=unicode, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
         self.reqparser.add_argument("operation", type=unicode, location="json")
         self.reqparser.add_argument("operator_name", type=unicode, location="json")
+        #self.reqparser.add_argument("abnormal_products", type=list, location="json")
+        #self.reqparser.add_argument("dutyReport", type=dict, location="json")
 
         super(OrderAPI, self).__init__()
 
@@ -315,10 +328,14 @@ class OrderAPI(Resource):
     # 有待完善的逻辑重点
     def put(self, id):
         args = self._order_put_params()
+        # 使用了reqparser后可以防止过度防御
         flag = args["operation"]
         del args["operation"]
         operator_name = args["operator_name"]
         del args["operator_name"]
+        #remark = args["remark"]
+        #del args["remark"]
+
         #WaixieOrder.query.filter_by(id=id).update(args)
         entity = WaixieOrder.query.get(id)
         if entity is None:
@@ -326,12 +343,28 @@ class OrderAPI(Resource):
         else:
             flow = Workflow("temp", entity.status, entity.workflow_status)
             try:
+                # 莫名其妙的更新改动
+                if request.json["abnormal_products"] is not None:
+                    abnormal_products = request.json["abnormal_products"]
+                    for product in abnormal_products:
+                        entity_product = AbnormalProduct(skuCode=product["skuCode"], remark=product["remark"], waixieOrder_id=entity.id)
+                        db.session.add(entity_product)
+                
+                if request.json["duty_report"]:
+                    duty_reports = request.json["duty_report"] if type(request.json["duty_report"]) is list else [request.json["duty_report"]] 
+                    for report in duty_reports:
+                        report["order_id"] = entity.id
+                        entity_report = DutyReport(**report)
+                        db.session.add(entity_report)
+
                 # 主流程控制，从制定到放弃
                 if flow.workflow.state is not "in_progress":
-                    return {"message": "invalid operaton, call developer for more", "status":500}  
+                    return {"message": "invalid operaton, call developer for more", "status":500}
                 elif flag is not None:
                     source = flow.status_code()
                     flow.trigger(flag)
+                    if flow.state == "service_approving":
+                        args["summited_at"] = datetime.now()
                     destination = flow.status_code()
                     jouranl = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, trigger=flag, operator_name=operator_name)
                     db.session.add(jouranl)
@@ -341,7 +374,8 @@ class OrderAPI(Resource):
                 args["workflow_status"] = flow.workflow.status_code()
             WaixieOrder.query.filter_by(id=id).update(args)
             db.session.commit()
-        return {"message": "ok", "status": 0}, 200
+            entity = WaixieOrder.query.get(id)
+        return {"message": "ok", "status": 0, "data":entity.to_json()}, 200
 
     def delete(self, id):
         entity = WaixieOrder.query.get(id)
@@ -367,7 +401,7 @@ class OrderAPI(Resource):
 class OrderListAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
-        #self.reqparser.add_argument("customer_name", type=unicode, location="json")
+        self.reqparser.add_argument("customer_name", type=unicode, location="json")
         self.reqparser.add_argument("material_number", type=unicode, location="json")
         self.reqparser.add_argument("creater_name", type=unicode, location="json")
         self.reqparser.add_argument("creater_id", type=int, location="json")
@@ -408,7 +442,7 @@ class OrderListAPI(Resource):
 
     def post(self):
         args = self._order_post_params()
-        
+
         entity = WaixieOrder(**args)
         db.session.add(entity)
         db.session.commit()
@@ -439,11 +473,14 @@ class OrderListAPI(Resource):
         if args.creater_name is not None:
             creater = User.query.filter_by(userName=args.creater_name).first()
             if creater is not None: args.creater_id = creater.id
-            del args["creater_name"]
+            #del args["creater_name"]
         if args.material_supplier_name is not None:
             material_supplier = Supplier.query.filter_by(supplierName=args.material_supplier_name).first()
             if material_supplier is not None: args.material_supplier_id = material_supplier.id
-            del args["material_supplier_name"]
+            #del args["material_supplier_name"]
+        if args.customer_name is not None:
+            customer = Supplier.query.filter_by(supplierName=args.customer_name).first()
+            if customer is not None: args.customer_id = customer.id
         return args
 
 class OrderJournalListAPI(Resource):
@@ -457,10 +494,20 @@ class OrderJournalListAPI(Resource):
         entities = WorkflowJournal.query.all()
         return {"message": "ok", "data":[e.to_json() for e in entities], "status":0}, 200
 
+class DutyReportAPI(Resource):
+    def __init__(self):
+        self.reqparser = reqparse.RequestParser()
+        
+        super(DutyReportAPI, self).__init__()
+    
+    def get(self):
+        return {"message": "ok", "data":ABNORMALPRODUCT, "status":0}
 
-api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='afterservice_order')
-api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterservice_orders')
-api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice_order_journals")
+
+api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='afterservice.order')
+api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterservice.orders')
+api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice.order.journals")
+api.add_resource(DutyReportAPI, '/api/v1/afterservice/dutyreports/abnormalrank', endpoint="dutyreport.abnormalrank")
 
 if __name__ == "__main__":
     if os.environ["FLASK_ENV"] == "development":

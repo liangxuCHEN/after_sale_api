@@ -61,6 +61,9 @@ def simple_delete_test():
     resp = requests.delete('http://localhost:5050/api/v1/afterservice/orders/8')
     print resp.json()
 
+def simple_get_rank_test():
+    resp = requests.get('http://localhost:5050/api/v1/afterservice/dutyreports/abnormalrank')
+    print resp.json()
 
 # 更加细化的测试
 
