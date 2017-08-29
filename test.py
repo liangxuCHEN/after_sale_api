@@ -20,6 +20,7 @@ def fake_waixie():
     }
 
     required_field.update(optional_field)
+    required_field.update(after_filled)
 
     return required_field
 

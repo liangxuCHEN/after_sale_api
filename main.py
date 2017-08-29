@@ -13,14 +13,19 @@ from flask_script import Manager, Shell
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, MigrateCommand
 from flask_restful import Api, Resource, reqparse
+from flask_cors import CORS
 from workflows.AfterService import Workflow, WorkflowStatus, AfterServiceStatus
 from transitions import MachineError
 from datetime import datetime, date, timedelta
 import os, json
 from aenum import Enum
 
+
+
 base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
+cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
+
 
 if os.environ["FLASK_ENV"] == "development":
     app.config['SQLALCHEMY_DATABASE_URI'] = \
@@ -409,6 +414,8 @@ class OrderListAPI(Resource):
         self.reqparser.add_argument("material_supplier_id", type=int, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
         self.reqparser.add_argument("type", type=unicode, location="json")
+        self.reqparser.add_argument("saler_name", type=unicode, location="json")
+        self.reqparser.add_argument("saler_id", type=unicode, location="json")
         # 列表改在request中处理
         #self.reqparser.add_argument("abnormal_products", type=list, location="json")
         #self.reqparser.add_argument("dutyReport", type=dict, location="json")
