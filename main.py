@@ -154,6 +154,7 @@ class DutyReport(db.Model):
     compensation = db.Column(db.Integer)
     duty_to_id = db.Column(db.Integer)
     duty_to = db.Column(db.Unicode(100))
+    # 缺了个责任判定日期
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
 
@@ -252,7 +253,7 @@ class WaixieOrder(db.Model):
             'type': self.type,
             'customer_name': self.customer.supplierName if self.customer is not None else "",
             'material_supplier_name': self.material_supplier.supplierName if self.material_supplier is not None else "",
-            'creater': self.creater.userName if self.creater is not None else "",
+            'creater_name': self.creater.userName if self.creater is not None else "",
             'material_number': self.material_number,
             'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at is not None else "",
             'updated_at': self.updated_at.strftime("%Y-%m-%d %H:%M:%S") if self.updated_at is not None else "",
@@ -321,10 +322,29 @@ def api_post_user():
 
 @app.route('/api/v1/afterservice/supplier_user_matcher')
 def api_supplier_user_matcher():
-    key_word = request.args["key_word"]
-    query_list = [getattr(Supplier)]
-    entity = Supplier.query.outjoin(User, User.id == Supplier.AfterSalerId)
-    return "again"
+    query = db.session.query(Supplier, User).outerjoin(User, User.id == Supplier.AfterSalerId)
+    if "key_word" in request.args:
+        key_word = request.args["key_word"]
+        query_list = [
+                        getattr(Supplier, "supplierName").like(u"%{}%".format(key_word)),
+                        getattr(User, "userName").like(u"%{}%".format(key_word)),
+                    ]
+        query = query.filter(db.or_(*query_list))
+    
+    if "page" in request.args and "per_page" in request.args:
+        page = int(request.args["page"])
+        per_page = int(request.args["per_page"])
+        entity_pairs = query.paginate(page, per_page).items
+    else:
+        entity_pairs = query.all()
+
+    res = [
+            {
+                "supplier_name": entity_supplier.supplierName if entity_supplier is not None else "",
+                "afterservice_salername": entity_user.userName if entity_user is not None else ""
+            } for (entity_supplier, entity_user) in entity_pairs
+        ] 
+    return jsonify({"data":res, "message":"ok", "status":0}), 200
 
 class OrderAPI(Resource):
     def __init__(self):
@@ -424,6 +444,39 @@ class OrderAPI(Resource):
             del args["material_supplier_name"]
         return args
 
+class WaixieAbnormalProductApi(Resource):
+    def __init__(self):
+        self.reqparser_put = reqparse.RequestParser()
+        self.reqparser_put.add_argument("skuCode", type=unicode, location="json")
+        self.reqparser_put.add_argument("remark", type=unicode, location="json")
+        super(WaixieAbnormalProductApi, self).__init__()
+
+    def put(self, waixie_id, product_id):
+        args = self.reqparser_put.parse_args()
+        AbnormalProduct.query.filter_by(id=product_id).update(*args)
+
+        db.session.commit()
+        return {"message": "ok", "data":{}, "status":0}        
+
+    def get(self, waixie_id, product_id):
+        pass
+
+    def delete(self, waixie_id, product_id):
+        entity = AbnormalProduct.query.get(product_id)
+        db.session.delete(entity)
+        db.session.commit()
+        return {"message": "ok", "data":{}, "status": 0}
+
+class WaixieAbnormalProductListApi(Resource):
+    def __init__(self):
+        super(WaixieAbnormalProductListApi, self).__init__()
+
+    def get(self, waixie_id):
+        pass
+
+    def post(self, waixie_id):
+        pass
+
 class OrderListAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
@@ -462,6 +515,7 @@ class OrderListAPI(Resource):
         super(OrderListAPI, self).__init__()
 
     def get(self):
+        
         args = self.reqparser_get.parse_args()
         if args.status is not None or args.creater_name is not None or args.workflow_status is not None:
             query = WaixieOrder.query.join(User, WaixieOrder.creater_id==User.id)
@@ -483,7 +537,10 @@ class OrderListAPI(Resource):
 
     def post(self):
         args = self._order_post_params()
-        
+        required = self.reqparser_post_required.parse_args()
+        for value in required.values():
+            if value is None: raise Exception("nothing")
+
         entity = WaixieOrder(**args)
         db.session.add(entity)
         db.session.commit()
@@ -535,6 +592,9 @@ api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='aft
 api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterservice.orders')
 api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice.order.journals")
 api.add_resource(DutyReportAPI, '/api/v1/afterservice/dutyreports/abnormalrank', endpoint="dutyreport.abnormalrank")
+api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products', endpoint='afterservice.order.abnormal-products')
+api.add_resource(WaixieAbnormalProductListApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products/<int:product_id>', endpoint='afterservice.order.abnormal-product')
+
 
 if __name__ == "__main__":
     if os.environ["FLASK_ENV"] == "development":

@@ -5,18 +5,21 @@ import requests, json, sys
 
 def fake_waixie():
     required_field = {
-        #"type": "order_type",
-        #"customer_name": "成都市金虎家俱有限公司",
+        "type": "aws",
+        "customer_name": "成都市金虎家俱有限公司",
+        "creater_name": "陈俊文",
+        "remark": "fuck",
+        "reason": "tmp"
     }
     optional_field = {
         #"material_number": "sku2017082411541503546850",
         #"material_supplier_name": "成都市金虎家俱有限公司",
         #"creater_name": "陈俊文",
-        #"abnormal_products": [{"skuCode":"LS19ZH0303003", "remark":"fuckme"}, {"skuCode":"LS19ZH0320009", "remark":"fuck2me"}],
+        
                                                                                                                                                            "duty_report": {"abnormal_type": 12}
     }
     after_filled = {
-        #"saler_name": u"陈俊文"
+        #"reason": u"陈俊文"
     }
 
     required_field.update(optional_field)
@@ -66,6 +69,9 @@ def simple_get_rank_test():
     print resp.json()
 
 # 更加细化的测试
+def simple_get_ab_test():
+    resp = requests.get('http://localhost:5050/api/v1/afterservice/orders/2/abnormal-products')
+    print resp.json()
 
 
 if __name__ == "__main__":
