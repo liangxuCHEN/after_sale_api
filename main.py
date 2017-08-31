@@ -17,7 +17,7 @@ from flask_cors import CORS
 from workflows.AfterService import Workflow, WorkflowStatus, AfterServiceStatus
 from transitions import MachineError
 from datetime import datetime, date, timedelta
-import os, json
+import os, json, pdb
 from aenum import Enum
 
 
@@ -27,7 +27,7 @@ app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 
-if os.environ["FLASK_ENV"] == "development":
+if os.environ["FLASK_ENV"] != "development":
     app.config['SQLALCHEMY_DATABASE_URI'] = \
         "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
 else:
@@ -73,6 +73,18 @@ class Supplier(db.Model):
     __tablename__ = "T_PRT_SupplierBasicInfo"
     id = db.Column(db.Integer, primary_key=True)
     supplierName = db.Column(db.Unicode(None))
+    IsLogisticSupplier = db.Column(db.Boolean)
+    AfterSalerId = db.Column(db.Integer)
+
+    @classmethod
+    def real(cls):
+        return cls
+
+
+    def to_json(self):
+        return {
+            "supplierName": self.supplierName
+        }
 
 
 class User(db.Model):
@@ -188,12 +200,12 @@ class WaixieOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)  
     serial_number = db.Column(db.Unicode(14)) #单据编号
     type = db.Column(db.Unicode(100)) #单据类型
-    expired_status = db.Column(db.Unicode(100))
-    summited_at = db.Column(db.DateTime)
-    material_number = db.Column(db.Unicode(100))
-    status = db.Column(db.Integer, nullable=False)
-    workflow_status = db.Column(db.Integer, nullable=False)
-    remark = db.Column(db.UnicodeText)
+    expired_status = db.Column(db.Unicode(100)) #过期状态
+    summited_at = db.Column(db.DateTime)    #提交时间
+    material_number = db.Column(db.Unicode(100))    #物料编号
+    status = db.Column(db.Integer, nullable=False)  #审批状态
+    workflow_status = db.Column(db.Integer, nullable=False) #流程状态
+    remark = db.Column(db.UnicodeText)  #异常描述
     
     material_supplier_id = db.Column(db.Integer) # 保留原有的表结构, 供应商表id
     material_supplier_name = db.Column(db.Unicode(100))
@@ -203,8 +215,9 @@ class WaixieOrder(db.Model):
     creater_name = db.Column(db.Unicode(100))
     saler_id = db.Column(db.Integer)     #销售者id, user表id
     saler_name = db.Column(db.Unicode(100))
+    reason = db.Column(db.Unicode(20)) #原因
     created_at = db.Column(db.DateTime, server_default=db.func.now())
-    updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())    
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now()) 
     # abnormal_products = db.relationship("AbnormalProduct", backref="T_PRT_AbnormalProduct", 
     #                                     lazy='dynamic')
     # jouranls = db.relationship('WorkflowJournal', backref='T_AfterService_Workflows',
@@ -223,14 +236,12 @@ class WaixieOrder(db.Model):
             WaixieOrder.created_at <= datetime_today + timedelta(days=1)
         ).all()) + 1
         self.serial_number = "SH%s%s" %(datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count))
-        #self.created_at = datetime.now()
-        #self.updated_at = datetime.now()
         super(WaixieOrder, self).__init__(*args, **kwargs)
 
 
     def to_json(self):
         self.abnormal_products = AbnormalProduct.query.filter_by(waixieOrder_id = self.id)
-        self.duty_report = DutyReport.query.filter_by(order_id = self.id).first()
+        self.duty_report = DutyReport.query.filter_by(order_id = self.id).all()
         self.customer = Supplier.query.filter_by(id=self.customer_id).first() or Supplier.query.filter_by(supplierName=self.customer_name).first()
         self.material_supplier = Supplier.query.filter_by(id=self.material_supplier_id).first() or Supplier.query.filter_by(supplierName=self.material_supplier_id).first()
         self.creater = User.query.filter_by(id=self.creater_id).first() or User.query.filter_by(userName=self.creater_name).first()
@@ -249,7 +260,8 @@ class WaixieOrder(db.Model):
             'status': AfterServiceStatus(self.status).name,
             'workflow_status': WorkflowStatus(self.workflow_status).name,
             'abnormal_porducts': [e.to_json() for e in self.abnormal_products],
-            'duty_report': self.duty_report.to_json() if self.duty_report is not None else ""
+            'duty_report': [e.to_json() for e in self.duty_report],
+            'remark': self.remark
         }
 
 class WorkflowJournal(db.Model):
@@ -306,6 +318,12 @@ def api_post_user():
     db.session.commit() 
     return "fack date add one"  
 
+@app.route('/api/v1/afterservice/supplier_user_matcher')
+def api_supplier_user_matcher():
+    key_word = request.args["key_word"]
+    query_list = [getattr(Supplier)]
+    entity = Supplier.query.outjoin(User, User.id == Supplier.AfterSalerId)
+    return "again"
 
 class OrderAPI(Resource):
     def __init__(self):
@@ -318,8 +336,8 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("remark", type=unicode, location="json")
         self.reqparser.add_argument("operation", type=unicode, location="json")
         self.reqparser.add_argument("operator_name", type=unicode, location="json")
-        #self.reqparser.add_argument("abnormal_products", type=list, location="json")
-        #self.reqparser.add_argument("dutyReport", type=dict, location="json")
+        self.reqparser.add_argument("abnormal_products", type=list, location="json")
+        self.reqparser.add_argument("duty_report", type=dict, location="json")
 
         super(OrderAPI, self).__init__()
 
@@ -349,18 +367,20 @@ class OrderAPI(Resource):
             flow = Workflow("temp", entity.status, entity.workflow_status)
             try:
                 # 莫名其妙的更新改动
-                if request.json["abnormal_products"] is not None:
+                if args.abnormal_products is not None:
                     abnormal_products = request.json["abnormal_products"]
                     for product in abnormal_products:
                         entity_product = AbnormalProduct(skuCode=product["skuCode"], remark=product["remark"], waixieOrder_id=entity.id)
                         db.session.add(entity_product)
+                del args["abnormal_products"]
                 
-                if request.json["duty_report"]:
+                if args.duty_report is not None:
                     duty_reports = request.json["duty_report"] if type(request.json["duty_report"]) is list else [request.json["duty_report"]] 
                     for report in duty_reports:
                         report["order_id"] = entity.id
                         entity_report = DutyReport(**report)
                         db.session.add(entity_report)
+                del args["duty_report"]
 
                 # 主流程控制，从制定到放弃
                 if flow.workflow.state is not "in_progress":
@@ -414,11 +434,23 @@ class OrderListAPI(Resource):
         self.reqparser.add_argument("material_supplier_id", type=int, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
         self.reqparser.add_argument("type", type=unicode, location="json")
-        self.reqparser.add_argument("saler_name", type=unicode, location="json")
-        self.reqparser.add_argument("saler_id", type=unicode, location="json")
-        # 列表改在request中处理
-        #self.reqparser.add_argument("abnormal_products", type=list, location="json")
-        #self.reqparser.add_argument("dutyReport", type=dict, location="json")
+        self.reqparser.add_argument("reason", type=unicode, location="json")
+        # post 必须参数
+        self.reqparser_post_required = reqparse.RequestParser()
+        self.reqparser_post_required.add_argument("customer_name", type=unicode, location="json")
+        self.reqparser_post_required.add_argument("remark", type=unicode, location="json")
+        self.reqparser_post_required.add_argument("reason", type=unicode, location="json")
+        # post 可选参数
+        self.reqparser_post_optional = reqparse.RequestParser()
+        self.reqparser_post_optional.add_argument("creater_name", type=unicode, location="json")
+        self.reqparser_post_optional.add_argument("material_number", type=unicode, location="json")
+        self.reqparser_post_optional.add_argument("creater_id", type=int, location="json")
+        self.reqparser_post_optional.add_argument("material_supplier_id", type=int, location="json")
+        self.reqparser_post_optional.add_argument("material_supplier_name", type=unicode, location="json")
+        # 销售负责人不用传递
+        #self.reqparser_post_optional.add_argument("saler_name", type=unicode, location="json")
+        #self.reqparser_post_required.add_argument("saler_id", type=unicode, location="json")
+        
 
         self.reqparser_get = reqparse.RequestParser()
         self.reqparser_get.add_argument("status", type=unicode)
@@ -450,23 +482,9 @@ class OrderListAPI(Resource):
 
     def post(self):
         args = self._order_post_params()
-
+        
         entity = WaixieOrder(**args)
         db.session.add(entity)
-        db.session.commit()
-        if request.json["abnormal_products"] is not None:
-            abnormal_products = request.json["abnormal_products"]
-            for product in abnormal_products:
-                entity_product = AbnormalProduct(skuCode=product["skuCode"], remark=product["remark"], waixieOrder_id=entity.id)
-                db.session.add(entity_product)
-        
-        if request.json["duty_report"]:
-            duty_reports = request.json["duty_report"] if type(request.json["duty_report"]) is list else [request.json["duty_report"]] 
-            for report in duty_reports:
-                report["order_id"] = entity.id
-                entity_report = DutyReport(**report)
-                db.session.add(entity_report)
-
         db.session.commit()
         return {"message": "ok", "data": entity.to_json(), "status": 0}, 200
 
