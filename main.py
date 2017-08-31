@@ -26,13 +26,14 @@ base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-
-if os.environ["FLASK_ENV"] != "development":
-    app.config['SQLALCHEMY_DATABASE_URI'] = \
-        "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = \
-        "mssql+pymssql://BS-Prt:123123@192.168.1.253:1433/BSPRODUCTCENTER?charset=utf8"
+app.config['SQLALCHEMY_DATABASE_URI'] = \
+         "mssql+pymssql://BS-Prt:123123@192.168.1.253:1433/BSPRODUCTCENTER?charset=utf8"
+# if os.environ["FLASK_ENV"] == "development":
+#     app.config['SQLALCHEMY_DATABASE_URI'] = \
+#         "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
+# else:
+#     app.config['SQLALCHEMY_DATABASE_URI'] = \
+#         "mssql+pymssql://BS-Prt:123123@192.168.1.253:1433/BSPRODUCTCENTER?charset=utf8"
 #        "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
 #        'sqlite:///%s' % os.path.join(base_dir, 'data.sqlite')
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
