@@ -392,20 +392,20 @@ class OrderAPI(Resource):
             flow = Workflow("temp", entity.status, entity.workflow_status)
             try:
                 # 莫名其妙的更新改动
-                if args.abnormal_products is not None:
+                if "abnormal_products" in args:
                     abnormal_products = request.json["abnormal_products"]
                     for product in abnormal_products:
                         entity_product = AbnormalProduct(skuCode=product["skuCode"], remark=product["remark"], waixieOrder_id=entity.id)
                         db.session.add(entity_product)
-                del args["abnormal_products"]
+                    del args["abnormal_products"]
                 
-                if args.duty_report is not None:
+                if "duty_report" in args:
                     duty_reports = request.json["duty_report"] if type(request.json["duty_report"]) is list else [request.json["duty_report"]] 
                     for report in duty_reports:
                         report["order_id"] = entity.id
                         entity_report = DutyReport(**report)
                         db.session.add(entity_report)
-                del args["duty_report"]
+                    del args["duty_report"]
 
                 # 主流程控制，从制定到放弃
                 if flow.workflow.state is not "in_progress":
@@ -449,10 +449,9 @@ class OrderAPI(Resource):
             material_supplier = Supplier.query.filter_by(supplierName=args.material_supplier_name).first()
             if material_supplier is not None: args.material_supplier_id = material_supplier.id
             del args["material_supplier_name"]
-        res = {}
         for key, item in args.items():
-            if item: res[key] = item
-        return res
+            if item is None: del args[key]
+        return args
 
 class WaixieAbnormalProductApi(Resource):
     def __init__(self):
