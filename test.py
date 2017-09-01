@@ -28,8 +28,8 @@ def fake_waixie():
     return required_field
 
 def simple_post_test():
-    #resp = requests.post('http://192.168.3.172:5050/api/v1/afterservice/orders', json=fake_waixie())
-    resp = requests.post('http://localhost:5050/api/v1/afterservice/orders', json=fake_waixie())
+    resp = requests.post('http://192.168.3.172:5050/api/v1/afterservice/orders', json=fake_waixie())
+    #resp = requests.post('http://localhost:5050/api/v1/afterservice/orders', json=fake_waixie())
     print resp.json()
 
 def simple_get_test(*params):
@@ -73,6 +73,13 @@ def simple_get_ab_test():
     resp = requests.get('http://localhost:5050/api/v1/afterservice/orders/2/abnormal-products')
     print resp.json()
 
+def simple_post_ab_test():
+    resp = requests.post('http://localhost:5050/api/v1/afterservice/orders/2/abnormal-products', json={"product_list": [{}]})
+    print resp.json()
+
+def simple_put_ab_test():
+    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/2/abnormal-products/11', json={"remark": "game"})
+    print resp.json()
 
 if __name__ == "__main__":
     method = sys.argv[1]

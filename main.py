@@ -26,16 +26,17 @@ base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
+
+if os.environ["FLASK_ENV"] == "development":
+    app.config['SQLALCHEMY_DATABASE_URI'] = \
+        "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = \
+        "mssql+pymssql://BS-Prt:123123@192.168.1.253:1433/BSPRODUCTCENTER?charset=utf8"
+    #    "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
+    #    'sqlite:///%s' % os.path.join(base_dir, 'data.sqlite')
 app.config['SQLALCHEMY_DATABASE_URI'] = \
          "mssql+pymssql://BS-Prt:123123@192.168.1.253:1433/BSPRODUCTCENTER?charset=utf8"
-# if os.environ["FLASK_ENV"] == "development":
-#     app.config['SQLALCHEMY_DATABASE_URI'] = \
-#         "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
-# else:
-#     app.config['SQLALCHEMY_DATABASE_URI'] = \
-#         "mssql+pymssql://BS-Prt:123123@192.168.1.253:1433/BSPRODUCTCENTER?charset=utf8"
-#        "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
-#        'sqlite:///%s' % os.path.join(base_dir, 'data.sqlite')
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 manager = Manager(app)
@@ -76,11 +77,6 @@ class Supplier(db.Model):
     supplierName = db.Column(db.Unicode(None))
     IsLogisticSupplier = db.Column(db.Boolean)
     AfterSalerId = db.Column(db.Integer)
-
-    @classmethod
-    def real(cls):
-        return cls
-
 
     def to_json(self):
         return {
@@ -194,7 +190,8 @@ class AbnormalProduct(db.Model):
             "id": self.id,
             "skuCode": self.skuCode,
             "remark": self.remark,
-            "product_itemName": product_entity.itemName if product_entity is not None else ""
+            "product_itemName": product_entity.itemName if product_entity is not None else "",
+            "waixieOrder_id": self.waixieOrder_id
         }
 
 class WaixieOrder(db.Model):
@@ -245,8 +242,13 @@ class WaixieOrder(db.Model):
         self.abnormal_products = AbnormalProduct.query.filter_by(waixieOrder_id = self.id)
         self.duty_report = DutyReport.query.filter_by(order_id = self.id).all()
         self.customer = Supplier.query.filter_by(id=self.customer_id).first() or Supplier.query.filter_by(supplierName=self.customer_name).first()
+        
         self.material_supplier = Supplier.query.filter_by(id=self.material_supplier_id).first() or Supplier.query.filter_by(supplierName=self.material_supplier_id).first()
         self.creater = User.query.filter_by(id=self.creater_id).first() or User.query.filter_by(userName=self.creater_name).first()
+        if self.material_supplier:
+            self.saler = User.query.filter_by(id=self.saler_id if self.saler_id else self.material_supplier.AfterSalerId).first()
+        else:
+            self.saler = None
         return {
             'id': self.id,
             'serial_number': self.serial_number,
@@ -263,7 +265,9 @@ class WaixieOrder(db.Model):
             'workflow_status': WorkflowStatus(self.workflow_status).name,
             'abnormal_porducts': [e.to_json() for e in self.abnormal_products],
             'duty_report': [e.to_json() for e in self.duty_report],
-            'remark': self.remark
+            'remark': self.remark,
+            'saler': self.saler.userName if self.saler else "",
+            "reason": self.reason
         }
 
 class WorkflowJournal(db.Model):
@@ -377,8 +381,8 @@ class OrderAPI(Resource):
         del args["operation"]
         operator_name = args["operator_name"]
         del args["operator_name"]
-        #remark = args["remark"]
-        #del args["remark"]
+        remark = args["remark"] if args["remark"] else ""
+        del args["remark"]
 
         #WaixieOrder.query.filter_by(id=id).update(args)
         entity = WaixieOrder.query.get(id)
@@ -405,19 +409,22 @@ class OrderAPI(Resource):
 
                 # 主流程控制，从制定到放弃
                 if flow.workflow.state is not "in_progress":
-                    return {"message": "invalid operaton, call developer for more", "status":500}
+                    return {"message": "invalid operaton, call developer for more", "status": 500}
                 elif flag is not None:
                     source = flow.status_code()
                     flow.trigger(flag)
                     if flow.state == "service_approving":
                         args["summited_at"] = datetime.now()
                     destination = flow.status_code()
-                    jouranl = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, trigger=flag, operator_name=operator_name)
-                    db.session.add(jouranl)
+                    journal = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, trigger=flag, operator_name=operator_name, remark=remark)
+                    
+                    db.session.add(journal)
                     args["status"] = flow.status_code()
+                    if flow.state == "end":
+                        flow.workflow.done()
+                        args["workflow_status"] = flow.workflow.status_code()
             except MachineError as e:
-                flow.workflow.done()
-                args["workflow_status"] = flow.workflow.status_code()
+                return {"message": "invalid operation", "status":0, "data":{}}
             WaixieOrder.query.filter_by(id=id).update(args)
             db.session.commit()
             entity = WaixieOrder.query.get(id)
@@ -442,7 +449,10 @@ class OrderAPI(Resource):
             material_supplier = Supplier.query.filter_by(supplierName=args.material_supplier_name).first()
             if material_supplier is not None: args.material_supplier_id = material_supplier.id
             del args["material_supplier_name"]
-        return args
+        res = {}
+        for key, item in args.items():
+            if item: res[key] = item
+        return res
 
 class WaixieAbnormalProductApi(Resource):
     def __init__(self):
@@ -453,13 +463,13 @@ class WaixieAbnormalProductApi(Resource):
 
     def put(self, waixie_id, product_id):
         args = self.reqparser_put.parse_args()
-        AbnormalProduct.query.filter_by(id=product_id).update(*args)
-
+        AbnormalProduct.query.filter_by(id=product_id).update(args)
         db.session.commit()
         return {"message": "ok", "data":{}, "status":0}        
 
     def get(self, waixie_id, product_id):
-        pass
+        entity = AbnormalProduct.query.get(product_id)
+        return {"message": "ok", "data":entity.to_json(), "status":0}
 
     def delete(self, waixie_id, product_id):
         entity = AbnormalProduct.query.get(product_id)
@@ -469,13 +479,49 @@ class WaixieAbnormalProductApi(Resource):
 
 class WaixieAbnormalProductListApi(Resource):
     def __init__(self):
+        #考虑到批处理的问题，不用参数解析器了，话说这回连strong parameter都做不到，不适合长期使用
+        self.reqparser = reqparse.RequestParser()
+        self.reqparser.add_argument("skuCode", type=unicode, location="json")
+        self.reqparser.add_argument("product_id", type=int, location="json")
+        self.reqparser.add_argument("remark", type=unicode, location="json")
+        self.reqparser.add_argument("product_list", type=list, location="json")
         super(WaixieAbnormalProductListApi, self).__init__()
 
     def get(self, waixie_id):
-        pass
+        entities = AbnormalProduct.query.filter_by(waixieOrder_id=waixie_id).all()
+        return {"message": "ok", "data":[entity.to_json() for entity in entities]}
 
     def post(self, waixie_id):
-        pass
+        if "product_list" in request.json:
+            res = []
+            for data in request.json["product_list"]:
+                entity_data = {"waixieOrder_id": waixie_id}
+                entity_data.update(self._parser_post_param(data))
+                res.append(AbnormalProduct(**self._parser_post_param(entity_data)))
+            db.session.add_all(res)
+            db.session.commit()
+        else:
+            args = self.reqparser.parse_args()
+            args["waixieOrder_id"] = waixie_id
+            res = AbnormalProduct(**args)
+            db.session.add(res)
+            db.session.commit()
+            res = [res]
+        return {"message": "ok", "data": [entity.to_json() for entity in res], "status":0}
+
+    def _parser_post_param(self, data):
+        res = {}
+        if "skuCode" in data:
+            res["skuCode"] = data["skuCode"]
+            product_entity = Product.query.filter_by(skuCode = data["skuCode"]).first()
+            if product_entity is not None: res["product_id"] = product_entity.id
+        if "product_id" in data:
+            res["product_id"] = data["product_id"]
+        if "remark" in data:
+            res["remark"] = data["remark"]
+        if "waixieOrder_id" in data:
+            res["waixieOrder_id"] = data["waixieOrder_id"]
+        return res
 
 class OrderListAPI(Resource):
     def __init__(self):
@@ -570,9 +616,8 @@ class OrderListAPI(Resource):
 class OrderJournalListAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
-        
         super(OrderJournalListAPI, self).__init__()
-
+        
     def get(self):
         #params = request.args
         entities = WorkflowJournal.query.all()
@@ -592,8 +637,8 @@ api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='aft
 api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterservice.orders')
 api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice.order.journals")
 api.add_resource(DutyReportAPI, '/api/v1/afterservice/dutyreports/abnormalrank', endpoint="dutyreport.abnormalrank")
-api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products', endpoint='afterservice.order.abnormal-products')
-api.add_resource(WaixieAbnormalProductListApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products/<int:product_id>', endpoint='afterservice.order.abnormal-product')
+api.add_resource(WaixieAbnormalProductListApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products', endpoint='afterservice.order.abnormal-products')
+api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products/<int:product_id>', endpoint='afterservice.order.abnormal-product')
 
 
 if __name__ == "__main__":

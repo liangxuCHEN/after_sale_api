@@ -1,8 +1,8 @@
 """init
 
-Revision ID: 157932dfa5d2
+Revision ID: fb8301ba819a
 Revises: 
-Create Date: 2017-08-26 13:43:48.397438
+Create Date: 2017-09-01 13:51:52.018751
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '157932dfa5d2'
+revision = 'fb8301ba819a'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -67,6 +67,7 @@ def upgrade():
     sa.Column('creater_name', sa.Unicode(length=100), nullable=True),
     sa.Column('saler_id', sa.Integer(), nullable=True),
     sa.Column('saler_name', sa.Unicode(length=100), nullable=True),
+    sa.Column('reason', sa.Unicode(length=20), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text(u'CURRENT_TIMESTAMP'), nullable=True),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text(u'CURRENT_TIMESTAMP'), nullable=True),
     sa.PrimaryKeyConstraint('id')
@@ -105,6 +106,8 @@ def upgrade():
     op.create_table('T_PRT_SupplierBasicInfo',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('supplierName', sa.Unicode(), nullable=True),
+    sa.Column('IsLogisticSupplier', sa.Boolean(), nullable=True),
+    sa.Column('AfterSalerId', sa.Integer(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('T_SYS_User',
