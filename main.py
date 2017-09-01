@@ -377,18 +377,19 @@ class OrderAPI(Resource):
     def put(self, id):
         args = self._order_put_params()
         # 使用了reqparser后可以防止过度防御
+        that_journal = {}
         if "operation" in args:
             flag = args["operation"] or None
             del args["operation"]
         
         if "operator_name" in args:
-            operator_name = args["operator_name"]
+            that_journal["operator_name"] = args["operator_name"]
             del args["operator_name"]
         
         if "remark" in args: 
-            remark = args["remark"]
+            that_journal["remark"] = args["remark"]
             del args["remark"]
-            
+
         #WaixieOrder.query.filter_by(id=id).update(args)
         entity = WaixieOrder.query.get(id)
         if entity is None:
@@ -421,7 +422,8 @@ class OrderAPI(Resource):
                     if flow.state == "service_approving":
                         args["summited_at"] = datetime.now()
                     destination = flow.status_code()
-                    journal = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, trigger=flag, operator_name=operator_name, remark=remark)
+                    workflow_id = entity.id
+                    journal = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, trigger=flag, **that_journal)
                     
                     db.session.add(journal)
                     args["status"] = flow.status_code()
