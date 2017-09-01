@@ -377,12 +377,10 @@ class OrderAPI(Resource):
     def put(self, id):
         args = self._order_put_params()
         # 使用了reqparser后可以防止过度防御
-        flag = args["operation"]
+        flag = args["operation"] if "operation" in args else None
         del args["operation"]
-        operator_name = args["operator_name"]
-        del args["operator_name"]
-        remark = args["remark"] if args["remark"] else ""
-        del args["remark"]
+        operator_name = args["operator_name"] if "operator_name" in args else ""
+        remark = args["remark"] if "remark" in args else ""
 
         #WaixieOrder.query.filter_by(id=id).update(args)
         entity = WaixieOrder.query.get(id)
