@@ -28,8 +28,8 @@ def fake_waixie():
     return required_field
 
 def simple_post_test():
-    resp = requests.post('http://192.168.3.172:5050/api/v1/afterservice/orders', json=fake_waixie())
-    #resp = requests.post('http://localhost:5050/api/v1/afterservice/orders', json=fake_waixie())
+    #resp = requests.post('http://192.168.3.172:5050/api/v1/afterservice/orders', json=fake_waixie())
+    resp = requests.post('http://localhost:5050/api/v1/afterservice/orders', json=fake_waixie())
     print resp.json()
 
 def simple_get_test(*params):
@@ -44,12 +44,20 @@ def simple_get_test(*params):
 def simple_put_test():
     data = {}
     data['serial_number'] = 'SH201707040001'
-    data['operation'] = 'done'
+    # data['operation'] = 'done'
     data['operator_name'] = 'christmas father'
-    #resp = requests.put('http://192.168.3.172:5050/api/v1/afterservice/orders/1', json=data)
-    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/82', json=data)
+    data['duty_report'] = {
+        'abnormal_reason': 'test',
+        'publishment': 'test',
+        'compensation': '123',
+    }
+    print data
+    resp = requests.put('http://192.168.3.172:5050/api/v1/afterservice/orders/141', json=data)
+    #resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/141', json=data)
 
     print resp.json()
+
+
 def simple_get_one_test():
     #resp = requests.get('http://192.168.3.172:5050/api/v1/afterservice/orders/5')
     resp = requests.get('http://localhost:5050/api/v1/afterservice/orders/5')
@@ -82,10 +90,13 @@ def simple_put_ab_test():
     print resp.json()
 
 if __name__ == "__main__":
-    method = sys.argv[1]
-    params = sys.argv[2:]
-    print "&".join(params)
-    if len(params) >= 1:
-        globals()["_".join(["simple", method, "test"])](*params)
-    else:
-        globals()["_".join(["simple", method, "test"])]()
+    # method = sys.argv[1]
+    # params = sys.argv[2:]
+    # print "&".join(params)
+    # if len(params) >= 1:
+    #     globals()["_".join(["simple", method, "test"])](*params)
+    # else:
+    #     globals()["_".join(["simple", method, "test"])]()
+    #simple_post_test()
+    #simple_post_ab_test()
+    simple_put_test()

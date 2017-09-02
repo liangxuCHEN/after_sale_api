@@ -532,6 +532,8 @@ class WaixieAbnormalProductListApi(Resource):
             res["waixieOrder_id"] = data["waixieOrder_id"]
         return res
 
+
+
 class OrderListAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
