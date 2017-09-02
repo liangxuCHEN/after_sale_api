@@ -27,12 +27,12 @@ app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 
-if os.environ["FLASK_ENV"] == "development":
-    app.config['SQLALCHEMY_DATABASE_URI'] = \
-        "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = \
-        "mssql+pymssql://BS-Prt:123123@192.168.1.253:1433/BSPRODUCTCENTER?charset=utf8"
+#if os.environ["FLASK_ENV"] == "development":
+#    app.config['SQLALCHEMY_DATABASE_URI'] = \
+#        "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
+#else:
+app.config['SQLALCHEMY_DATABASE_URI'] = \
+    "mssql+pymssql://BS-Prt:123123@192.168.1.253:1433/BSPRODUCTCENTER?charset=utf8"
     #    "mssql+pymssql://sa:NTDgun123@localhost:1433/model?charset=utf8"
     #    'sqlite:///%s' % os.path.join(base_dir, 'data.sqlite')
 app.config['SQLALCHEMY_DATABASE_URI'] = \
@@ -245,7 +245,7 @@ class WaixieOrder(db.Model):
         
         self.material_supplier = Supplier.query.filter_by(id=self.material_supplier_id).first() or Supplier.query.filter_by(supplierName=self.material_supplier_id).first()
         self.creater = User.query.filter_by(id=self.creater_id).first() or User.query.filter_by(userName=self.creater_name).first()
-        if self.material_supplier:
+        if self.saler_id:
             self.saler = User.query.filter_by(id=self.saler_id if self.saler_id else self.material_supplier.AfterSalerId).first()
         else:
             self.saler = None
@@ -377,9 +377,11 @@ class OrderAPI(Resource):
     def put(self, id):
         args = self._order_put_params()
         # 使用了reqparser后可以防止过度防御
+        print args
         that_journal = {}
+        flag = None
         if "operation" in args:
-            flag = args["operation"] or None
+            flag = args["operation"]
             del args["operation"]
         
         if "operator_name" in args:
@@ -400,6 +402,7 @@ class OrderAPI(Resource):
                 # 莫名其妙的更新改动
                 if "abnormal_products" in args:
                     abnormal_products = request.json["abnormal_products"]
+                    print abnormal_products
                     for product in abnormal_products:
                         entity_product = AbnormalProduct(skuCode=product["skuCode"], remark=product["remark"], waixieOrder_id=entity.id)
                         db.session.add(entity_product)
@@ -616,7 +619,12 @@ class OrderListAPI(Resource):
             #del args["material_supplier_name"]
         if args.customer_name is not None:
             customer = Supplier.query.filter_by(supplierName=args.customer_name).first()
-            if customer is not None: args.customer_id = customer.id
+            if customer is not None:
+                args.customer_id = customer.id
+                args.saler_id = customer.AfterSalerId
+                saler = User.query.filter_by(id=args.saler_id).first()
+                args.saler_name = saler.userName
+             
         return args
 
 class OrderJournalListAPI(Resource):
@@ -648,8 +656,8 @@ api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/<int:wai
 
 
 if __name__ == "__main__":
-    if os.environ["FLASK_ENV"] == "development":
-        #manager.run()
-        app.run(host='0.0.0.0', debug=True, port=5050)
-    else:
-        app.run(host='0.0.0.0', debug=True, port=5050)
+    #if os.environ["FLASK_ENV"] == "development":
+    #manager.run()
+    app.run(host='0.0.0.0', debug=True, port=5050)
+    #else:
+        #app.run(host='0.0.0.0', debug=True, port=5050)
