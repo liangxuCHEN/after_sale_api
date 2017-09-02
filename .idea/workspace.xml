@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="fad3b5d7-c1d3-4f80-a84b-ef4146ccdf27" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/main.py" afterPath="$PROJECT_DIR$/main.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/test.py" afterPath="$PROJECT_DIR$/test.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -21,8 +20,8 @@
       <file leaf-file-name="main.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="82">
-              <caret line="147" column="15" lean-forward="false" selection-start-line="147" selection-start-column="4" selection-end-line="147" selection-end-column="15" />
+            <state relative-caret-position="595">
+              <caret line="401" column="27" lean-forward="true" selection-start-line="401" selection-start-column="27" selection-end-line="401" selection-end-column="27" />
               <folding />
             </state>
           </provider>
@@ -31,8 +30,8 @@
       <file leaf-file-name="test.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/test.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="285">
-              <caret line="51" column="30" lean-forward="true" selection-start-line="51" selection-start-column="30" selection-end-line="51" selection-end-column="30" />
+            <state relative-caret-position="235">
+              <caret line="53" column="5" lean-forward="true" selection-start-line="53" selection-start-column="5" selection-end-line="53" selection-end-column="5" />
               <folding />
             </state>
           </provider>
@@ -44,6 +43,7 @@
     <findStrings>
       <find>put</find>
       <find>duty</find>
+      <find>that_journal</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -325,16 +325,16 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="82">
-          <caret line="147" column="15" lean-forward="false" selection-start-line="147" selection-start-column="4" selection-end-line="147" selection-end-column="15" />
+        <state relative-caret-position="595">
+          <caret line="401" column="27" lean-forward="true" selection-start-line="401" selection-start-column="27" selection-end-line="401" selection-end-column="27" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/test.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="285">
-          <caret line="51" column="30" lean-forward="true" selection-start-line="51" selection-start-column="30" selection-end-line="51" selection-end-column="30" />
+        <state relative-caret-position="235">
+          <caret line="53" column="5" lean-forward="true" selection-start-line="53" selection-start-column="5" selection-end-line="53" selection-end-column="5" />
           <folding />
         </state>
       </provider>
