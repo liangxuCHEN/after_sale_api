@@ -132,6 +132,7 @@ class AfterServiceWorkflow(Workflow_t):
     #              service_status=%(service_status)r, workflow_status=%(workflow_status)r)" % self
 
 class DeductionOrder(db.Model):
+    #Q 这个是做什么
     __tablename__ = "T_AS_DeductionOrder"
     id = db.Column(db.Integer, primary_key=True)
     serial_number = db.Column(db.Unicode(100))
@@ -143,6 +144,7 @@ class DeductionOrder(db.Model):
 class DutyReport(db.Model):
     __tablename__ = "T_AS_DutyReport"
     id = db.Column(db.Integer, primary_key=True)
+    #Q 这个type 转为 string ？？
     abnormal_type = db.Column(db.Integer)
     abnormal_reason = db.Column(db.UnicodeText)
     publishment = db.Column(db.UnicodeText)
@@ -150,7 +152,7 @@ class DutyReport(db.Model):
     compensation = db.Column(db.Integer)
     duty_to_id = db.Column(db.Integer)
     duty_to = db.Column(db.Unicode(100))
-    # 缺了个责任判定日期
+    #Q 缺了个责任判定日期
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
 
@@ -212,6 +214,7 @@ class WaixieOrder(db.Model):
     customer_name = db.Column(db.Unicode(100))
     creater_id = db.Column(db.Integer) #创建者id, user表id
     creater_name = db.Column(db.Unicode(100))
+    #Q 售后专员？？
     saler_id = db.Column(db.Integer)     #销售者id, user表id
     saler_name = db.Column(db.Unicode(100))
     reason = db.Column(db.Unicode(20)) #原因
@@ -234,6 +237,7 @@ class WaixieOrder(db.Model):
             WaixieOrder.created_at >= datetime_today,
             WaixieOrder.created_at <= datetime_today + timedelta(days=1)
         ).all()) + 1
+        #Q 单据编号有什么用
         self.serial_number = "SH%s%s" %(datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count))
         super(WaixieOrder, self).__init__(*args, **kwargs)
 
@@ -278,6 +282,7 @@ class WorkflowJournal(db.Model):
     workflow_type = db.Column(db.String(100))
     source = db.Column(db.Integer, nullable=False)
     destination = db.Column(db.Integer, nullable=False)
+    #Q 触发的动作？
     trigger = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
@@ -425,6 +430,7 @@ class OrderAPI(Resource):
                     if flow.state == "service_approving":
                         args["summited_at"] = datetime.now()
                     destination = flow.status_code()
+                    #Q 这个没有用了
                     workflow_id = entity.id
                     journal = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, trigger=flag, **that_journal)
                     
@@ -639,18 +645,36 @@ class OrderJournalListAPI(Resource):
 
 class DutyReportAPI(Resource):
     def __init__(self):
-        self.reqparser = reqparse.RequestParser()
-        
+        self.reqparser_put = reqparse.RequestParser()
+        self.reqparser_put.add_argument("abnormal_type", type=unicode, location="json")
+        self.reqparser_put.add_argument("abnormal_reason", type=unicode, location="json")
+        self.reqparser_put.add_argument("publishment", type=unicode, location="json")
+        self.reqparser_put.add_argument("publish_to", type=unicode, location="json")
+        self.reqparser_put.add_argument("compensation", type=unicode, location="json")
+        self.reqparser_put.add_argument("duty_to", type=unicode, location="json")
         super(DutyReportAPI, self).__init__()
     
-    def get(self):
-        return {"message": "ok", "data":ABNORMALPRODUCT, "status":0}
+    def put(self, report_id):
+        args = self.reqparser_put.parse_args()
+        DutyReport.query.filter_by(id=report_id).update(args)
+        db.session.commit()
+        return {"message": "ok", "data":{}, "status":0}
 
+    def get(self, report_id):
+        entity = DutyReport.query.get(report_id)
+        return {"message": "ok", "data":entity.to_json(), "status":0}
 
+    def delete(self, report_id):
+        entity = DutyReport.query.get(report_id)
+        db.session.delete(entity)
+        db.session.commit()
+        return {"message": "ok", "data":{}, "status": 0}
+
+# endpoint 什么意思
 api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='afterservice.order')
 api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterservice.orders')
 api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice.order.journals")
-api.add_resource(DutyReportAPI, '/api/v1/afterservice/dutyreports/abnormalrank', endpoint="dutyreport.abnormalrank")
+api.add_resource(DutyReportAPI, '/api/v1/afterservice/dutyreports/<int:report_id>', endpoint="dutyreport.abnormalrank")
 api.add_resource(WaixieAbnormalProductListApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products', endpoint='afterservice.order.abnormal-products')
 api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products/<int:product_id>', endpoint='afterservice.order.abnormal-product')
 
