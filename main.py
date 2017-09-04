@@ -510,7 +510,6 @@ class OrderAPI(Resource):
                         args["workflow_status"] = flow.workflow.status_code()
             except MachineError as e:
                 return {"message": "invalid operation", "status":500, "data":entity.to_json()}
-            pdb.set_trace()
             if args: WaixieOrder.query.filter_by(id=id).update(args)
             db.session.commit()
             entity = WaixieOrder.query.get(id)
@@ -536,7 +535,6 @@ class OrderAPI(Resource):
             if material_supplier is not None: args.material_supplier_id = material_supplier.id
         for key, item in args.items():
             if item is None: del args[key]
-        pdb.set_trace()
         return args
 
 class WaixieAbnormalProductApi(Resource):
