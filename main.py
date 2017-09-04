@@ -125,6 +125,7 @@ class Workflow_t(db.Model):
         return "%(__class__.__name__)s(type=%(type)r, order_id=%(order_id)r, name=%(name)r,\
                  service_status=%(service_status)r, workflow_status=%(workflow_status)r)" % self
 
+
 class AfterServiceWorkflow(Workflow_t):
     __tablename__ = None
 
@@ -144,7 +145,6 @@ class DeductionOrder(db.Model):
     supplier_name = db.Column(db.Unicode(100))
     supplier_id = db.Column(db.Integer)
     
-
 
 class DutyReport(db.Model):
     __tablename__ = "T_AS_DutyReport"
