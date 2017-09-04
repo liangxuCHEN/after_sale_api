@@ -174,7 +174,8 @@ class DutyReport(db.Model):
             "publish_to": self.publish_to,
             "compensation": self.compensation,
             "duty_to_id": self.duty_to_id,
-            "duty_to": self.duty_to
+            "duty_to": self.duty_to,
+            "order_id": self.order_id
         }
         
 
@@ -711,7 +712,7 @@ class DutyReportAPI(Resource):
 api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='afterservice.order')
 api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterservice.orders')
 api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice.order.journals")
-api.add_resource(DutyReportAPI, '/api/v1/afterservice/orders/<int:report_id>/duty-report', endpoint="afterservice.order.duty-report")
+api.add_resource(DutyReportAPI, '/api/v1/afterservice/duty-report/<int:report_id>', endpoint="afterservice.order.duty-report")
 api.add_resource(WaixieAbnormalProductListApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products', endpoint='afterservice.order.abnormal-products')
 api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products/<int:product_id>', endpoint='afterservice.order.abnormal-product')
 
