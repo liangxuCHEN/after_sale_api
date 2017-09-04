@@ -149,7 +149,7 @@ class DeductionOrder(db.Model):
 class DutyReport(db.Model):
     __tablename__ = "T_AS_DutyReport"
     id = db.Column(db.Integer, primary_key=True)
-    #Q 这个type 转为 string ？？
+    #Q:这个type 转为 string ？？ A:那边还是没有维护这个的，考虑到改动的问题，用字符串吧
     abnormal_type = db.Column(db.Integer)
     abnormal_reason = db.Column(db.UnicodeText)
     publishment = db.Column(db.UnicodeText)
@@ -157,7 +157,7 @@ class DutyReport(db.Model):
     compensation = db.Column(db.Integer)
     duty_to_id = db.Column(db.Integer)
     duty_to = db.Column(db.Unicode(100))
-    #Q 缺了个责任判定日期
+    #Q 缺了个责任判定日期 A:确实
     DutyDate = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
@@ -220,7 +220,7 @@ class WaixieOrder(db.Model):
     customer_name = db.Column(db.Unicode(100))
     creater_id = db.Column(db.Integer) #创建者id, user表id
     creater_name = db.Column(db.Unicode(100))
-    #Q 售后专员？？
+    #Q 售后专员？？ A：是
     saler_id = db.Column(db.Integer)     #销售者id, user表id
     saler_name = db.Column(db.Unicode(100))
     reason = db.Column(db.Unicode(20)) #原因
@@ -243,7 +243,7 @@ class WaixieOrder(db.Model):
             WaixieOrder.created_at >= datetime_today,
             WaixieOrder.created_at <= datetime_today + timedelta(days=1)
         ).all()) + 1
-        #Q 单据编号有什么用
+        #Q 单据编号有什么用 A: 暂不清楚
         self.serial_number = "SH%s%s" %(datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count))
         super(WaixieOrder, self).__init__(*args, **kwargs)
 
@@ -288,7 +288,7 @@ class WorkflowJournal(db.Model):
     workflow_type = db.Column(db.String(100))
     source = db.Column(db.Integer, nullable=False)
     destination = db.Column(db.Integer, nullable=False)
-    #Q 触发的动作？
+    #Q 触发的动作？ A: yes, only can be 'done' or 'reject' right now
     trigger = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
