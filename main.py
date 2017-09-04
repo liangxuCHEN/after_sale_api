@@ -333,7 +333,7 @@ def api_post_user():
 
     db.session.add_all([user_entity, product_entity, supplier_entity])
     db.session.commit() 
-    return "fack date add one"  
+    return "fack date add one"
 
 @app.route('/api/v1/afterservice/supplier_user_matcher')
 def api_supplier_user_matcher():
@@ -382,6 +382,17 @@ def api_all_products():
 
     return jsonify({"data": [e.to_json() for e in entity], "message": "ok", "status": 0}), 200
 
+@app.route('/api/v1/afterservice/<int:waixie_id>/journals')
+def api_journals(waixie_id):
+    query = db.session.query(WorkflowJournal).filter_by(workflow_id=waixie_id)
+    if "page" in request.args and "per_page" in request.args:
+        page = int(request.args["page"])
+        per_page = int(request.args["per_page"])
+        entities = query.paginate(page, per_page).items
+    else:
+        entities = query.all()
+
+    return jsonify({"data": [entity.to_json() for entity in entities], "message": "ok", "status": 0}), 200
 
 class OrderAPI(Resource):
     def __init__(self):
