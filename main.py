@@ -62,13 +62,18 @@ class Product(db.Model):
     itemName = db.Column(db.Unicode(None))
     skuCode = db.Column(db.Unicode(None))
     itemCode = db.Column(db.Unicode(None))
+    # TODO:添加其他参数
+    ImgPath = db.Column(db.Unicode(None))
+    SkuName = db.Column(db.Unicode(None))
 
     def to_json(self):
         return {
             "id": self.id,
             "item_name": self.itemName,
             "sku_code": self.skuCode,
-            "item_code": self.itemCode
+            "item_code": self.itemCode,
+            'img_path': self.ImgPath,
+            'SkuName': self.SkuName
         }
 
 class Supplier(db.Model):
@@ -132,7 +137,7 @@ class AfterServiceWorkflow(Workflow_t):
     #              service_status=%(service_status)r, workflow_status=%(workflow_status)r)" % self
 
 class DeductionOrder(db.Model):
-    #Q 这个是做什么
+    #Q 财务扣款单
     __tablename__ = "T_AS_DeductionOrder"
     id = db.Column(db.Integer, primary_key=True)
     serial_number = db.Column(db.Unicode(100))
@@ -153,6 +158,7 @@ class DutyReport(db.Model):
     duty_to_id = db.Column(db.Integer)
     duty_to = db.Column(db.Unicode(100))
     #Q 缺了个责任判定日期
+    DutyDate = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
 
@@ -354,6 +360,28 @@ def api_supplier_user_matcher():
             } for (entity_supplier, entity_user) in entity_pairs
         ] 
     return jsonify({"data":res, "message":"ok", "status":0}), 200
+
+
+@app.route('/api/v1/afterservice/all-products')
+def api_all_products():
+    # 做个产品查询接口
+    query = db.session.query(Product)
+    if "key_word" in request.args:
+        key_word = request.args["key_word"]
+        query_list = [
+            getattr(Product, "itemName").like(u"%{}%".format(key_word)),
+        ]
+        query = query.filter(db.or_(*query_list))
+
+    if "page" in request.args and "per_page" in request.args:
+        page = int(request.args["page"])
+        per_page = int(request.args["per_page"])
+        entity = query.paginate(page, per_page).items
+    else:
+        entity = query.all()
+
+    return jsonify({"data": entity.to_json, "message": "ok", "status": 0}), 200
+
 
 class OrderAPI(Resource):
     def __init__(self):
@@ -674,7 +702,7 @@ class DutyReportAPI(Resource):
 api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='afterservice.order')
 api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterservice.orders')
 api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice.order.journals")
-api.add_resource(DutyReportAPI, '/api/v1/afterservice/dutyreports/<int:report_id>', endpoint="dutyreport.abnormalrank")
+api.add_resource(DutyReportAPI, '/api/v1/afterservice/orders/<int:waixie_id>/duty-report', endpoint="afterservice.order.duty-report")
 api.add_resource(WaixieAbnormalProductListApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products', endpoint='afterservice.order.abnormal-products')
 api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products/<int:product_id>', endpoint='afterservice.order.abnormal-product')
 

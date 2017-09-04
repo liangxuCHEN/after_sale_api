@@ -8,7 +8,7 @@ def fake_waixie():
         "type": "aws",
         "customer_name": "成都市金虎家俱有限公司",
         "creater_name": "陈俊文",
-        "remark": "fuck",
+        "remark": "test-post",
         "reason": "tmp"
     }
     optional_field = {
@@ -43,11 +43,11 @@ def simple_get_test(*params):
 
 def simple_put_test():
     data = {}
-    data['serial_number'] = 'SH201707040001'
-    data['operation'] = 'done'
+    #data['serial_number'] = 'SH201707040001'
+    #data['operation'] = 'done'
     data['operator_name'] = 'christmas father'
-    #resp = requests.put('http://192.168.3.172:5050/api/v1/afterservice/orders/1', json=data)
-    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/82', json=data)
+    resp = requests.put('http://192.168.3.172:5050/api/v1/afterservice/orders/143', json=data)
+    #resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/82', json=data)
 
     print resp.json()
 def simple_get_one_test():
@@ -82,10 +82,11 @@ def simple_put_ab_test():
     print resp.json()
 
 if __name__ == "__main__":
-    method = sys.argv[1]
-    params = sys.argv[2:]
-    print "&".join(params)
-    if len(params) >= 1:
-        globals()["_".join(["simple", method, "test"])](*params)
-    else:
-        globals()["_".join(["simple", method, "test"])]()
+    # method = sys.argv[1]
+    # params = sys.argv[2:]
+    # print "&".join(params)
+    # if len(params) >= 1:
+    #     globals()["_".join(["simple", method, "test"])](*params)
+    # else:
+    #     globals()["_".join(["simple", method, "test"])]()
+    simple_put_test()
