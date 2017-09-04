@@ -6,6 +6,7 @@ from aenum import Enum
 __author__ = "chenyj"
 
 # 这里暂时比较坑的是并没有写在数据库里以解耦，上了生产环境后就只能往后追加新的内容了, Todo: pay load
+# 总言之，枚举就是这样的东西，数值从0开始...,要追加新状态就在后面加吧，不然会影响其它的内容的
 """
 流程状态 = 
 暂停, 进行中， 已完成， 已取消(撤销)， 已过期(超时)
@@ -38,7 +39,7 @@ after_service_trigger = [
     {'trigger': 'done', 'source':'waitting', 'dest': 'service_approving'},
     {'trigger': 'reject', 'source':'service_approving', 'dest':'waitting'},
     {'trigger': 'done', 'source':'service_approving', 'dest': 'service_approved'},
-    {'trigger': 'reject', 'source':'service_approving', 'dest':'waitting'},
+    {'trigger': 'reject', 'source':'service_approved', 'dest':'service_approving'},
     {'trigger': 'done', 'source':'service_approved', 'dest': 'manager_reviewing'},
     {'trigger': 'reject', 'source':'manager_reviewing', 'dest':'service_approved'},
     {'trigger': 'done', 'source':'manager_reviewing', 'dest': 'manager_reviewed'},

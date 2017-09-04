@@ -458,7 +458,6 @@ class OrderAPI(Resource):
                         entity_report = DutyReport(**report)
                         db.session.add(entity_report)
                     del args["duty_report"]
-
                 # 主流程控制，从制定到放弃
                 if flow.workflow.state is not "in_progress":
                     return {"message": "invalid operaton, call developer for more", "status": 500}
@@ -478,7 +477,7 @@ class OrderAPI(Resource):
                         flow.workflow.done()
                         args["workflow_status"] = flow.workflow.status_code()
             except MachineError as e:
-                return {"message": "invalid operation", "status":0, "data":{}}
+                return {"message": "invalid operation", "status":500, "data":entity.to_json()}
             if args: WaixieOrder.query.filter_by(id=id).update(args)
             db.session.commit()
             entity = WaixieOrder.query.get(id)
