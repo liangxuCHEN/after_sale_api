@@ -465,7 +465,6 @@ class OrderAPI(Resource):
         
         if "remark" in args: 
             that_journal["remark"] = args["remark"]
-            del args["remark"]
 
         #WaixieOrder.query.filter_by(id=id).update(args)
         entity = WaixieOrder.query.get(id)
@@ -535,6 +534,14 @@ class OrderAPI(Resource):
             if material_supplier is not None: args.material_supplier_id = material_supplier.id
         for key, item in args.items():
             if item is None: del args[key]
+
+        if args.customer_name is not None:
+            customer = Supplier.query.filter_by(supplierName=args.customer_name).first()
+            if customer is not None:
+                args.customer_id = customer.id
+                args.saler_id = customer.AfterSalerId
+                saler = User.query.filter_by(id=args.saler_id).first()
+                args.saler_name = saler.userName
         return args
 
 class WaixieAbnormalProductApi(Resource):

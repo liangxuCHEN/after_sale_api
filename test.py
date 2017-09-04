@@ -46,11 +46,11 @@ def simple_put_test():
     #data['serial_number'] = 'SH201707040001'
     #data['operation'] = 'done'
     #data['operation'] = 'reject'
-    data['operator_name'] = 'christmas father'
-    data['reason'] = "1234"
-    data['material_supplier_name'] = "成都市乐的家居有限公司"
+    # data['operator_name'] = 'christmas father'
+    data['remark'] = "123455555"
+    data['material_supplier_name'] = "东莞市景盛家具有限公司"
     #resp = requests.put('http://192.168.3.172:5050/api/v1/afterservice/orders/143', json=data)
-    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/146', json=data)
+    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/149', json=data)
 
     print resp.json()
 def simple_get_one_test():
