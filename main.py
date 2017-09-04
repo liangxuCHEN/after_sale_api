@@ -428,7 +428,6 @@ class OrderAPI(Resource):
         self.reqparser = reqparse.RequestParser()
         self.reqparser.add_argument("type", type=unicode, location="json")
         self.reqparser.add_argument("customer_name", type=unicode, location="json")
-        self.reqparser.add_argument("reason", type=unicode, location="json")
         self.reqparser.add_argument("material_number", type=unicode, location="json")
         self.reqparser.add_argument("material_supplier_name", type=unicode, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
@@ -437,7 +436,6 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("abnormal_products", type=list, location="json")
         self.reqparser.add_argument("duty_report", type=dict, location="json")
         self.reqparser.add_argument("reason", type=unicode, location="json")
-        self.reqparser.add_argument("customer_name", type=unicode, location="json")
 
 
         super(OrderAPI, self).__init__()
@@ -532,8 +530,6 @@ class OrderAPI(Resource):
         if args.material_supplier_name is not None:
             material_supplier = Supplier.query.filter_by(supplierName=args.material_supplier_name).first()
             if material_supplier is not None: args.material_supplier_id = material_supplier.id
-        for key, item in args.items():
-            if item is None: del args[key]
 
         if args.customer_name is not None:
             customer = Supplier.query.filter_by(supplierName=args.customer_name).first()
@@ -542,6 +538,9 @@ class OrderAPI(Resource):
                 args.saler_id = customer.AfterSalerId
                 saler = User.query.filter_by(id=args.saler_id).first()
                 args.saler_name = saler.userName
+        
+        for key, item in args.items():
+            if item is None: del args[key]
         return args
 
 class WaixieAbnormalProductApi(Resource):
