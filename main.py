@@ -380,7 +380,7 @@ def api_all_products():
     else:
         entity = query.all()
 
-    return jsonify({"data": entity.to_json, "message": "ok", "status": 0}), 200
+    return jsonify({"data": [e.to_json() for e in entity], "message": "ok", "status": 0}), 200
 
 
 class OrderAPI(Resource):
@@ -412,9 +412,8 @@ class OrderAPI(Resource):
         # 使用了reqparser后可以防止过度防御
         print args
         that_journal = {}
-        flag = None
         if "operation" in args:
-            flag = args["operation"]
+            that_journal["trigger"] = args["operation"]
             del args["operation"]
         
         if "operator_name" in args:
@@ -452,15 +451,15 @@ class OrderAPI(Resource):
                 # 主流程控制，从制定到放弃
                 if flow.workflow.state is not "in_progress":
                     return {"message": "invalid operaton, call developer for more", "status": 500}
-                elif flag is not None:
+                elif "trigger" in that_journal:
                     source = flow.status_code()
-                    flow.trigger(flag)
+                    flow.trigger(that_journal["trigger"])
                     if flow.state == "service_approving":
                         args["summited_at"] = datetime.now()
                     destination = flow.status_code()
                     #Q 这个没有用了
                     workflow_id = entity.id
-                    journal = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, trigger=flag, **that_journal)
+                    journal = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, **that_journal)
                     
                     db.session.add(journal)
                     args["status"] = flow.status_code()
@@ -469,7 +468,7 @@ class OrderAPI(Resource):
                         args["workflow_status"] = flow.workflow.status_code()
             except MachineError as e:
                 return {"message": "invalid operation", "status":0, "data":{}}
-            WaixieOrder.query.filter_by(id=id).update(args)
+            if args: WaixieOrder.query.filter_by(id=id).update(args)
             db.session.commit()
             entity = WaixieOrder.query.get(id)
         return {"message": "ok", "status": 0, "data":entity.to_json()}, 200
@@ -702,7 +701,7 @@ class DutyReportAPI(Resource):
 api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='afterservice.order')
 api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterservice.orders')
 api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice.order.journals")
-api.add_resource(DutyReportAPI, '/api/v1/afterservice/orders/<int:waixie_id>/duty-report', endpoint="afterservice.order.duty-report")
+api.add_resource(DutyReportAPI, '/api/v1/afterservice/orders/<int:report_id>/duty-report', endpoint="afterservice.order.duty-report")
 api.add_resource(WaixieAbnormalProductListApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products', endpoint='afterservice.order.abnormal-products')
 api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products/<int:product_id>', endpoint='afterservice.order.abnormal-product')
 
