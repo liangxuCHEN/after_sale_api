@@ -137,18 +137,17 @@ class AfterServiceWorkflow(Workflow_t):
     #     return "%(__class__.__name__)s(type=%(type)r, order_id=%(order_id)r, name=%(name)r,\
     #              service_status=%(service_status)r, workflow_status=%(workflow_status)r)" % self
 
+
 class DeductionOrder(db.Model):
     #Q 财务扣款单
     __tablename__ = "T_AS_DeductionOrder"
     id = db.Column(db.Integer, primary_key=True)
     serial_number = db.Column(db.Unicode(100))
     # 扣款供应商
-    supplier_name = db.Column(db.Unicode(100))
-    supplier_id = db.Column(db.Integer)
+    charge_number = db.Column(db.Unicode(100))
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     remark = db.Column(db.UnicodeText)  # 扣款备注
     has_receipt = db.Column(db.Unicode(10))  # 是否开票
-    type = db.Column(db.Unicode(100))  # 单据类型
 
 
 class DutyReport(db.Model):
@@ -230,6 +229,7 @@ class WaixieOrder(db.Model):
     saler_id = db.Column(db.Integer)     #销售者id, user表id
     saler_name = db.Column(db.Unicode(100))
     reason = db.Column(db.Unicode(20)) #原因
+    charge_number = db.Column(db.Unicode(14))  # 扣款单据编号
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now()) 
     # abnormal_products = db.relationship("AbnormalProduct", backref="T_PRT_AbnormalProduct", 
@@ -251,6 +251,7 @@ class WaixieOrder(db.Model):
         ).all()) + 1
         #Q 单据编号有什么用 A: 暂不清楚
         self.serial_number = "SH%s%s" %(datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count))
+        self.charge_number = "CH%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count))
         super(WaixieOrder, self).__init__(*args, **kwargs)
 
 
@@ -409,7 +410,7 @@ def api_abproduct_remove():
     if "waixie_id" in args:
         pass
     elif "ids" in args:
-        for id in ids:
+        for id in args.ids:
             entity = query.get(id)
             db.session.delete(entity)
             db.session.commit()
@@ -670,6 +671,7 @@ class OrderListAPI(Resource):
 
     def post(self):
         args = self._order_post_params()
+        print args
         required = self.reqparser_post_required.parse_args()
         for value in required.values():
             if value is None: raise Exception("nothing")
@@ -743,6 +745,8 @@ class DutyReportAPI(Resource):
         db.session.delete(entity)
         db.session.commit()
         return {"message": "ok", "data":{}, "status": 0}
+
+
 
 # endpoint 什么意思
 api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='afterservice.order')
