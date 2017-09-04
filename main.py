@@ -142,9 +142,14 @@ class DeductionOrder(db.Model):
     __tablename__ = "T_AS_DeductionOrder"
     id = db.Column(db.Integer, primary_key=True)
     serial_number = db.Column(db.Unicode(100))
+    # 扣款供应商
     supplier_name = db.Column(db.Unicode(100))
     supplier_id = db.Column(db.Integer)
-    
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    remark = db.Column(db.UnicodeText)  # 扣款备注
+    has_receipt = db.Column(db.Unicode(10))  # 是否开票
+    type = db.Column(db.Unicode(100))  # 单据类型
+
 
 class DutyReport(db.Model):
     __tablename__ = "T_AS_DutyReport"
@@ -184,7 +189,7 @@ class AbnormalProduct(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     skuCode = db.Column(db.Unicode(100)) #对应的外键
     product_id = db.Column(db.Integer) 
-    waixieOrder_id = db.Column(db.Integer)    #
+    waixieOrder_id = db.Column(db.Integer)
     remark = db.Column(db.UnicodeText)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
@@ -280,6 +285,7 @@ class WaixieOrder(db.Model):
             'saler': self.saler.userName if self.saler else "",
             "reason": self.reason
         }
+
 
 class WorkflowJournal(db.Model):
     __tablename__ = 'T_AS_Workflow_Journals'
@@ -412,8 +418,8 @@ class OrderAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
         self.reqparser.add_argument("type", type=unicode, location="json")
-        #self.reqparser.add_argument("customer_id", type=unicode, location="json")
-        #self.reqparser.add_argument("serial_number", type=unicode, location="json")
+        self.reqparser.add_argument("customer_name", type=unicode, location="json")
+        self.reqparser.add_argument("reason", type=unicode, location="json")
         self.reqparser.add_argument("material_number", type=unicode, location="json")
         self.reqparser.add_argument("material_supplier_name", type=unicode, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
@@ -421,6 +427,7 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("operator_name", type=unicode, location="json")
         self.reqparser.add_argument("abnormal_products", type=list, location="json")
         self.reqparser.add_argument("duty_report", type=dict, location="json")
+
 
         super(OrderAPI, self).__init__()
 
@@ -492,6 +499,7 @@ class OrderAPI(Resource):
                         args["workflow_status"] = flow.workflow.status_code()
             except MachineError as e:
                 return {"message": "invalid operation", "status":500, "data":entity.to_json()}
+            pdb.set_trace()
             if args: WaixieOrder.query.filter_by(id=id).update(args)
             db.session.commit()
             entity = WaixieOrder.query.get(id)
@@ -518,6 +526,7 @@ class OrderAPI(Resource):
             del args["material_supplier_name"]
         for key, item in args.items():
             if item is None: del args[key]
+        pdb.set_trace()
         return args
 
 class WaixieAbnormalProductApi(Resource):
@@ -616,8 +625,6 @@ class OrderListAPI(Resource):
         # 销售负责人不用传递
         #self.reqparser_post_optional.add_argument("saler_name", type=unicode, location="json")
         #self.reqparser_post_required.add_argument("saler_id", type=unicode, location="json")
-        
-
         self.reqparser_get = reqparse.RequestParser()
         self.reqparser_get.add_argument("status", type=unicode)
         self.reqparser_get.add_argument("workflow_status", type=unicode)
@@ -681,8 +688,8 @@ class OrderListAPI(Resource):
                 args.saler_id = customer.AfterSalerId
                 saler = User.query.filter_by(id=args.saler_id).first()
                 args.saler_name = saler.userName
-             
         return args
+
 
 class OrderJournalListAPI(Resource):
     def __init__(self):
@@ -693,6 +700,7 @@ class OrderJournalListAPI(Resource):
         #params = request.args
         entities = WorkflowJournal.query.all()
         return {"message": "ok", "data":[e.to_json() for e in entities], "status":0}, 200
+
 
 class DutyReportAPI(Resource):
     def __init__(self):
