@@ -51,8 +51,8 @@ manager.add_command('db', MigrateCommand)
 外协即是waixie，然后sqlalchemy这东西的查询优化会很作死
 """
 # 责任报告的异常类别
-ABNORMALPRODUCT = ["emergency", "normal", "ignored"]
-AbnormalRank = Enum('workflow', ' '.join(ABNORMALPRODUCT))
+ABNORMALPRODUCT = ["成品", "材料", "其它"]
+AbnormalRank = Enum('abnormalproduct', ' '.join(ABNORMALPRODUCT))
 
 
 # 还原表结构, 从思考到直接放弃
@@ -149,15 +149,15 @@ class DeductionOrder(db.Model):
 class DutyReport(db.Model):
     __tablename__ = "T_AS_DutyReport"
     id = db.Column(db.Integer, primary_key=True)
-    #Q 这个type 转为 string ？？
-    abnormal_type = db.Column(db.Integer)
+    #Q:这个type 转为 string ？？ A:那边还是没有维护这个的，考虑到改动的问题，用字符串吧
+    abnormal_type = db.Column(db.Unicode(50))
     abnormal_reason = db.Column(db.UnicodeText)
     publishment = db.Column(db.UnicodeText)
     publish_to = db.Column(db.Unicode(50))
     compensation = db.Column(db.Integer)
     duty_to_id = db.Column(db.Integer)
     duty_to = db.Column(db.Unicode(100))
-    #Q 缺了个责任判定日期
+    #Q 缺了个责任判定日期 A:确实
     DutyDate = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
@@ -221,7 +221,7 @@ class WaixieOrder(db.Model):
     customer_name = db.Column(db.Unicode(100))
     creater_id = db.Column(db.Integer) #创建者id, user表id
     creater_name = db.Column(db.Unicode(100))
-    #Q 售后专员？？
+    #Q 售后专员？？ A：是
     saler_id = db.Column(db.Integer)     #销售者id, user表id
     saler_name = db.Column(db.Unicode(100))
     reason = db.Column(db.Unicode(20)) #原因
@@ -244,7 +244,7 @@ class WaixieOrder(db.Model):
             WaixieOrder.created_at >= datetime_today,
             WaixieOrder.created_at <= datetime_today + timedelta(days=1)
         ).all()) + 1
-        #Q 单据编号有什么用
+        #Q 单据编号有什么用 A: 暂不清楚
         self.serial_number = "SH%s%s" %(datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count))
         super(WaixieOrder, self).__init__(*args, **kwargs)
 
@@ -289,7 +289,7 @@ class WorkflowJournal(db.Model):
     workflow_type = db.Column(db.String(100))
     source = db.Column(db.Integer, nullable=False)
     destination = db.Column(db.Integer, nullable=False)
-    #Q 触发的动作？
+    #Q 触发的动作？ A: yes, only can be 'done' or 'reject' right now
     trigger = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
@@ -395,6 +395,19 @@ def api_journals(waixie_id):
 
     return jsonify({"data": [entity.to_json() for entity in entities], "message": "ok", "status": 0}), 200
 
+@app.route('/api/v1/afterservice/orders/abnormal-product/delete', methods=["POST"])
+def api_abproduct_remove():
+    # 参数要求，对应的外协订单id，或者对应的异常商品记录id
+    args = request.json
+    query = db.session.query(AbnormalProduct)
+    if "waixie_id" in args:
+        pass
+
+@app.route('/api/v1/afterservice/dutyreports/abnormalrank')
+def api_abnormal_rank():
+    return jsonify({"data": ABNORMALPRODUCT, "message": "ok", "status": 0}), 200
+        
+
 class OrderAPI(Resource):
     def __init__(self):
         self.reqparser = reqparse.RequestParser()
@@ -468,7 +481,7 @@ class OrderAPI(Resource):
                     if flow.state == "service_approving":
                         args["summited_at"] = datetime.now()
                     destination = flow.status_code()
-                    #Q 这个没有用了
+                    #Q 这个没有用了 A: 确实没啥用的，lazyload查询吧对象放在内存中，由于没有关联关系，要用到其id，这套orm最大的优点就是复杂不够人性化
                     workflow_id = entity.id
                     journal = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, **that_journal)
                     
@@ -514,17 +527,17 @@ class WaixieAbnormalProductApi(Resource):
         self.reqparser_put.add_argument("remark", type=unicode, location="json")
         super(WaixieAbnormalProductApi, self).__init__()
 
-    def put(self, waixie_id, product_id):
+    def put(self, product_id):
         args = self.reqparser_put.parse_args()
         AbnormalProduct.query.filter_by(id=product_id).update(args)
         db.session.commit()
         return {"message": "ok", "data":{}, "status":0}        
 
-    def get(self, waixie_id, product_id):
+    def get(self, product_id):
         entity = AbnormalProduct.query.get(product_id)
         return {"message": "ok", "data":entity.to_json(), "status":0}
 
-    def delete(self, waixie_id, product_id):
+    def delete(self, product_id):
         entity = AbnormalProduct.query.get(product_id)
         db.session.delete(entity)
         db.session.commit()
@@ -714,7 +727,7 @@ api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterser
 api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice.order.journals")
 api.add_resource(DutyReportAPI, '/api/v1/afterservice/duty-report/<int:report_id>', endpoint="afterservice.order.duty-report")
 api.add_resource(WaixieAbnormalProductListApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products', endpoint='afterservice.order.abnormal-products')
-api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products/<int:product_id>', endpoint='afterservice.order.abnormal-product')
+api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/abnormal-products/<int:product_id>', endpoint='afterservice.order.abnormal-product')
 
 
 if __name__ == "__main__":
