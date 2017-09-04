@@ -125,6 +125,7 @@ class Workflow_t(db.Model):
         return "%(__class__.__name__)s(type=%(type)r, order_id=%(order_id)r, name=%(name)r,\
                  service_status=%(service_status)r, workflow_status=%(workflow_status)r)" % self
 
+
 class AfterServiceWorkflow(Workflow_t):
     __tablename__ = None
 
@@ -144,7 +145,6 @@ class DeductionOrder(db.Model):
     supplier_name = db.Column(db.Unicode(100))
     supplier_id = db.Column(db.Integer)
     
-
 
 class DutyReport(db.Model):
     __tablename__ = "T_AS_DutyReport"
@@ -333,7 +333,7 @@ def api_post_user():
 
     db.session.add_all([user_entity, product_entity, supplier_entity])
     db.session.commit() 
-    return "fack date add one"  
+    return "fack date add one"
 
 @app.route('/api/v1/afterservice/supplier_user_matcher')
 def api_supplier_user_matcher():
@@ -380,8 +380,19 @@ def api_all_products():
     else:
         entity = query.all()
 
-    return jsonify({"data": entity.to_json, "message": "ok", "status": 0}), 200
+    return jsonify({"data": [e.to_json() for e in entity], "message": "ok", "status": 0}), 200
 
+@app.route('/api/v1/afterservice/<int:waixie_id>/journals')
+def api_journals(waixie_id):
+    query = db.session.query(WorkflowJournal).filter_by(workflow_id=waixie_id)
+    if "page" in request.args and "per_page" in request.args:
+        page = int(request.args["page"])
+        per_page = int(request.args["per_page"])
+        entities = query.paginate(page, per_page).items
+    else:
+        entities = query.all()
+
+    return jsonify({"data": [entity.to_json() for entity in entities], "message": "ok", "status": 0}), 200
 
 class OrderAPI(Resource):
     def __init__(self):
@@ -412,9 +423,8 @@ class OrderAPI(Resource):
         # 使用了reqparser后可以防止过度防御
         print args
         that_journal = {}
-        flag = None
         if "operation" in args:
-            flag = args["operation"]
+            that_journal["trigger"] = args["operation"]
             del args["operation"]
         
         if "operator_name" in args:
@@ -448,19 +458,18 @@ class OrderAPI(Resource):
                         entity_report = DutyReport(**report)
                         db.session.add(entity_report)
                     del args["duty_report"]
-
                 # 主流程控制，从制定到放弃
                 if flow.workflow.state is not "in_progress":
                     return {"message": "invalid operaton, call developer for more", "status": 500}
-                elif flag is not None:
+                elif "trigger" in that_journal:
                     source = flow.status_code()
-                    flow.trigger(flag)
+                    flow.trigger(that_journal["trigger"])
                     if flow.state == "service_approving":
                         args["summited_at"] = datetime.now()
                     destination = flow.status_code()
                     #Q 这个没有用了
                     workflow_id = entity.id
-                    journal = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, trigger=flag, **that_journal)
+                    journal = WorkflowJournal(source=source, destination=destination, workflow_id=entity.id, **that_journal)
                     
                     db.session.add(journal)
                     args["status"] = flow.status_code()
@@ -468,8 +477,8 @@ class OrderAPI(Resource):
                         flow.workflow.done()
                         args["workflow_status"] = flow.workflow.status_code()
             except MachineError as e:
-                return {"message": "invalid operation", "status":0, "data":{}}
-            WaixieOrder.query.filter_by(id=id).update(args)
+                return {"message": "invalid operation", "status":500, "data":entity.to_json()}
+            if args: WaixieOrder.query.filter_by(id=id).update(args)
             db.session.commit()
             entity = WaixieOrder.query.get(id)
         return {"message": "ok", "status": 0, "data":entity.to_json()}, 200
@@ -702,7 +711,7 @@ class DutyReportAPI(Resource):
 api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='afterservice.order')
 api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterservice.orders')
 api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice.order.journals")
-api.add_resource(DutyReportAPI, '/api/v1/afterservice/orders/<int:waixie_id>/duty-report', endpoint="afterservice.order.duty-report")
+api.add_resource(DutyReportAPI, '/api/v1/afterservice/orders/<int:report_id>/duty-report', endpoint="afterservice.order.duty-report")
 api.add_resource(WaixieAbnormalProductListApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products', endpoint='afterservice.order.abnormal-products')
 api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/<int:waixie_id>/abnormal-products/<int:product_id>', endpoint='afterservice.order.abnormal-product')
 
