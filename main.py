@@ -155,7 +155,7 @@ class DutyReport(db.Model):
     __tablename__ = "T_AS_DutyReport"
     id = db.Column(db.Integer, primary_key=True)
     #Q:这个type 转为 string ？？ A:那边还是没有维护这个的，考虑到改动的问题，用字符串吧
-    abnormal_type = db.Column(db.Unicode(50))
+    abnormal_type = db.Column(db.String(100))
     abnormal_reason = db.Column(db.UnicodeText)
     publishment = db.Column(db.UnicodeText)
     publish_to = db.Column(db.Unicode(50))
@@ -408,6 +408,15 @@ def api_abproduct_remove():
     query = db.session.query(AbnormalProduct)
     if "waixie_id" in args:
         pass
+    elif "ids" in args:
+        for id in ids:
+            entity = query.get(id)
+            db.session.delete(entity)
+            db.session.commit()
+        return jsonify({}), 200
+    else:
+        return jsonify({"data":"", "message":""}), 200
+            
 
 @app.route('/api/v1/afterservice/dutyreports/abnormalrank')
 def api_abnormal_rank():
@@ -427,6 +436,8 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("operator_name", type=unicode, location="json")
         self.reqparser.add_argument("abnormal_products", type=list, location="json")
         self.reqparser.add_argument("duty_report", type=dict, location="json")
+        self.reqparser.add_argument("reason", type=unicode, location="json")
+        self.reqparser.add_argument("customer_name", type=unicode, location="json")
 
 
         super(OrderAPI, self).__init__()
@@ -523,7 +534,6 @@ class OrderAPI(Resource):
         if args.material_supplier_name is not None:
             material_supplier = Supplier.query.filter_by(supplierName=args.material_supplier_name).first()
             if material_supplier is not None: args.material_supplier_id = material_supplier.id
-            del args["material_supplier_name"]
         for key, item in args.items():
             if item is None: del args[key]
         pdb.set_trace()
@@ -711,6 +721,7 @@ class DutyReportAPI(Resource):
         self.reqparser_put.add_argument("publish_to", type=unicode, location="json")
         self.reqparser_put.add_argument("compensation", type=unicode, location="json")
         self.reqparser_put.add_argument("duty_to", type=unicode, location="json")
+        self.reqparser_put.add_argument("", type=unicode, location="json")
         super(DutyReportAPI, self).__init__()
     
     def put(self, report_id):
