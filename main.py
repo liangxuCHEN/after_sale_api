@@ -50,10 +50,30 @@ manager.add_command('db', MigrateCommand)
 试试部署方案，由于还有其他相关工作内容的整合，拖着点时间
 外协即是waixie，然后sqlalchemy这东西的查询优化会很作死
 """
-# 责任报告的异常类别
+# 售后原因
 ABNORMALPRODUCT = ["成品", "材料", "其它"]
 AbnormalRank = Enum('abnormalproduct', ' '.join(ABNORMALPRODUCT))
 
+
+# 责任报告的异常类别
+REPORTTYPE = ["单价", "服务", "货款", "交期", "结算", "其他","色差","送货","损耗","质量"]
+ReportRank = Enum('reporttype', ' '.join(REPORTTYPE))
+
+# 责任报告异常原因
+ABNORMALREASON = ["成品", "材料", "其它"]
+AbnormalreasonRank = Enum('abnormalproduct', ' '.join(ABNORMALREASON))
+
+# 责任报告责任方
+DUTYTO = ["成品供应商", "材料供应商"]
+DutytoRank = Enum('abnormalproduct', ' '.join(DUTYTO))
+
+# 责任报告扣款金额
+COMPENSATION = [x*5000 for x in range(1, 7)]
+DutytoRank = Enum('abnormalproduct', ' '.join(COMPENSATION))
+
+# 责任报告扣款金额
+PUBLISHMENT = ['处罚', '不处罚']
+PublishmentRank = Enum('abnormalproduct', ' '.join(PUBLISHMENT))
 
 # 还原表结构, 从思考到直接放弃
 class Product(db.Model):
@@ -444,7 +464,31 @@ def api_abproduct_remove():
 @app.route('/api/v1/afterservice/dutyreports/abnormalrank')
 def api_abnormal_rank():
     return jsonify({"data": ABNORMALPRODUCT, "message": "ok", "status": 0}), 200
+
+
+@app.route('/api/v1/afterservice/dutyreports/typerank')
+def api_type_rank():
+    return jsonify({"data": REPORTTYPE, "message": "ok", "status": 0}), 200
+
         
+@app.route('/api/v1/afterservice/dutyreports/reasonrank')
+def api_reason_rank():
+    return jsonify({"data": ABNORMALREASON, "message": "ok", "status": 0}), 200
+
+
+@app.route('/api/v1/afterservice/dutyreports/dutyrank')
+def api_duty_rank():
+    return jsonify({"data": DUTYTO, "message": "ok", "status": 0}), 200
+
+
+@app.route('/api/v1/afterservice/dutyreports/compensationrank')
+def api_compensation_rank():
+    return jsonify({"data": COMPENSATION, "message": "ok", "status": 0}), 200
+
+
+@app.route('/api/v1/afterservice/dutyreports/publishmentrank')
+def api_compensation_rank():
+    return jsonify({"data": PUBLISHMENT, "message": "ok", "status": 0}), 200
 
 class OrderAPI(Resource):
     def __init__(self):
