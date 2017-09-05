@@ -68,7 +68,7 @@ DUTYTO = ["成品供应商", "材料供应商"]
 DutytoRank = Enum('abnormalproduct', ' '.join(DUTYTO))
 
 # 责任报告扣款金额
-COMPENSATION = [x*5000 for x in range(1, 7)]
+COMPENSATION = [str(x*5000) for x in range(1, 7)]
 DutytoRank = Enum('abnormalproduct', ' '.join(COMPENSATION))
 
 # 责任报告扣款金额
@@ -487,7 +487,7 @@ def api_compensation_rank():
 
 
 @app.route('/api/v1/afterservice/dutyreports/publishmentrank')
-def api_compensation_rank():
+def api_publishment_rank():
     return jsonify({"data": PUBLISHMENT, "message": "ok", "status": 0}), 200
 
 class OrderAPI(Resource):
