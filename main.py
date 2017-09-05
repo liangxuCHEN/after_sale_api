@@ -236,10 +236,10 @@ class WaixieOrder(db.Model):
     workflow_status = db.Column(db.Integer, nullable=False) #流程状态
     remark = db.Column(db.UnicodeText)  #异常描述
     
-    material_supplier_id = db.Column(db.Integer) # 保留原有的表结构, 供应商表id
-    material_supplier_name = db.Column(db.Unicode(100))
+    material_supplier_id = db.Column(db.Integer) # 保留原有的表结构, 供应商表id, accuser
+    material_supplier_name = db.Column(db.Unicode(100))  #  accuser 
     customer_id = db.Column(db.Integer) #客户id， user表id
-    customer_name = db.Column(db.Unicode(100))
+    customer_name = db.Column(db.Unicode(100))   # charged
     creater_id = db.Column(db.Integer) #创建者id, user表id
     creater_name = db.Column(db.Unicode(100))
     #Q 售后专员？？ A：是
@@ -247,6 +247,7 @@ class WaixieOrder(db.Model):
     saler_name = db.Column(db.Unicode(100))
     reason = db.Column(db.Unicode(20)) #原因
     charge_number = db.Column(db.Unicode(14))  # 扣款单据编号
+    charge_type = db.Column(db.Unicode(100))  # charge type
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now()) 
     # abnormal_products = db.relationship("AbnormalProduct", backref="T_PRT_AbnormalProduct", 
@@ -287,9 +288,11 @@ class WaixieOrder(db.Model):
         return {
             'id': self.id,
             'serial_number': self.serial_number,
+            'charge_number': self.charge_number,
+            'charge_type': self.charge_type,
             'type': self.type,
             'customer_name': self.customer.supplierName if self.customer is not None else "",
-            'material_supplier_name': self.material_supplier.supplierName if self.material_supplier is not None else "",
+            'accuser_name': self.material_supplier.supplierName if self.material_supplier is not None else "",
             'creater_name': self.creater.userName if self.creater is not None else "",
             'material_number': self.material_number,
             'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at is not None else "",
@@ -457,6 +460,7 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("duty_report", type=dict, location="json")
         self.reqparser.add_argument("reason", type=unicode, location="json")
         self.reqparser.add_argument("tracks", type=list, location="json")
+        self.reqparser.add_argument("charge_type", type=unicode, location="json")
 
 
         super(OrderAPI, self).__init__()
