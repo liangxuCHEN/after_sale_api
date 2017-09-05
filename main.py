@@ -60,7 +60,7 @@ REPORTTYPE = ["单价", "服务", "货款", "交期", "结算", "其他","色差
 ReportRank = Enum('reporttype', ' '.join(REPORTTYPE))
 
 # 责任报告异常原因
-ABNORMALREASON = ["成品", "材料", "其它"]
+ABNORMALREASON = ["生产质量把控问题", "不能如期交货", "成品工厂自行采购", "检查方式有误", "质疑质量问题"]
 AbnormalreasonRank = Enum('abnormalproduct', ' '.join(ABNORMALREASON))
 
 # 责任报告责任方
@@ -71,7 +71,7 @@ DutytoRank = Enum('abnormalproduct', ' '.join(DUTYTO))
 COMPENSATION = [str(x*5000) for x in range(1, 7)]
 DutytoRank = Enum('abnormalproduct', ' '.join(COMPENSATION))
 
-# 责任报告扣款金额
+# 责任报告处罚方式
 PUBLISHMENT = ['处罚', '不处罚']
 PublishmentRank = Enum('abnormalproduct', ' '.join(PUBLISHMENT))
 
