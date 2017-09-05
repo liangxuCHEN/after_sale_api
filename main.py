@@ -207,6 +207,23 @@ class AbnormalProduct(db.Model):
             "waixieOrder_id": self.waixieOrder_id
         }
 
+# track
+class OrderTrack(db.Model):
+    __tablename__ = "T_AS_Track"
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer)
+    remark = db.Column(db.UnicodeText)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "remark": self.remark,
+            "order_id": self.order_id
+        }
+
+
 class WaixieOrder(db.Model):
     __tablename__ = 'T_AS_WaixieOrder'
     id = db.Column(db.Integer, primary_key=True)  
@@ -257,6 +274,7 @@ class WaixieOrder(db.Model):
 
     def to_json(self):
         self.abnormal_products = AbnormalProduct.query.filter_by(waixieOrder_id = self.id)
+        self.tracks = OrderTrack.query.filter_by(order_id = self.id)
         self.duty_report = DutyReport.query.filter_by(order_id = self.id).all()
         self.customer = Supplier.query.filter_by(id=self.customer_id).first() or Supplier.query.filter_by(supplierName=self.customer_name).first()
         
@@ -281,6 +299,7 @@ class WaixieOrder(db.Model):
             'status': AfterServiceStatus(self.status).name,
             'workflow_status': WorkflowStatus(self.workflow_status).name,
             'abnormal_porducts': [e.to_json() for e in self.abnormal_products],
+            'tracks': [e.to_json() for e in self.tracks],
             'duty_report': [e.to_json() for e in self.duty_report],
             'remark': self.remark,
             'saler': self.saler.userName if self.saler else "",
@@ -437,6 +456,7 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("abnormal_products", type=list, location="json")
         self.reqparser.add_argument("duty_report", type=dict, location="json")
         self.reqparser.add_argument("reason", type=unicode, location="json")
+        self.reqparser.add_argument("tracks", type=list, location="json")
 
 
         super(OrderAPI, self).__init__()
@@ -475,11 +495,18 @@ class OrderAPI(Resource):
                 # 莫名其妙的更新改动
                 if "abnormal_products" in args:
                     abnormal_products = request.json["abnormal_products"]
-                    print abnormal_products
                     for product in abnormal_products:
                         entity_product = AbnormalProduct(skuCode=product["skuCode"], remark=product["remark"], waixieOrder_id=entity.id)
                         db.session.add(entity_product)
                     del args["abnormal_products"]
+
+                if "tracks" in args:
+                    tracks = request.json["tracks"]
+                    for tarck in tracks:
+                        entity_track = OrderTrack(remark=tarck["remark"], order_id=entity.id)
+                        db.session.add(entity_track)
+                    del args["tracks"]
+
                 
                 if "duty_report" in args:
                     duty_reports = request.json["duty_report"] if type(request.json["duty_report"]) is list else [request.json["duty_report"]] 
@@ -539,7 +566,6 @@ class OrderAPI(Resource):
                 args.saler_id = customer.AfterSalerId
                 saler = User.query.filter_by(id=args.saler_id).first()
                 args.saler_name = saler.userName
-        
         for key, item in args.items():
             if item is None: del args[key]
         return args
@@ -702,8 +728,9 @@ class OrderListAPI(Resource):
             if customer is not None:
                 args.customer_id = customer.id
                 args.saler_id = customer.AfterSalerId
-                saler = User.query.filter_by(id=args.saler_id).first()
-                args.saler_name = saler.userName
+                if args.saler_id is not None:
+                    saler = User.query.filter_by(id=args.saler_id).first()
+                    args.saler_name = saler.userName
         return args
 
 
