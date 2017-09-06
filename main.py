@@ -164,7 +164,7 @@ class DeductionOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     serial_number = db.Column(db.Unicode(100))
     charge_number = db.Column(db.Unicode(100))
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    created_at = db.Column(db.DateTime)
     remark = db.Column(db.UnicodeText)  # 扣款备注
     has_receipt = db.Column(db.Unicode(10))  # 是否开票
     compensation = db.Column(db.Integer)  # charge price
@@ -178,7 +178,7 @@ class DeductionOrder(db.Model):
             "compensation": self.compensation,
             "remark": self.remark,
             "has_receipt": self.has_receipt,
-            "created_at": self.created_at
+            'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at is not None else ""
         }
 
 
@@ -211,7 +211,8 @@ class DutyReport(db.Model):
             "compensation": self.compensation,
             "duty_to_id": self.duty_to_id,
             "duty_to": self.duty_to,
-            "order_id": self.order_id
+            "order_id": self.order_id,
+            "duty_date": self.DutyDate
         }
         
 
@@ -574,10 +575,9 @@ class OrderAPI(Resource):
                 if "deductions" in args:
                     deductions = request.json["deductions"] if type(request.json['deductions']) is list else [request.json['deductions']]
                     for deduction in deductions:
-                        print entity.charge_number
-                        print entity.serial_number
                         deduction['serial_number'] = entity.serial_number
                         deduction['charge_number'] = entity.charge_number
+                        deduction['created_at'] = date.today().strftime("%Y-%m-%d %H:%M:%S")
                         entity_deduction = DeductionOrder(**deduction)
                         db.session.add(entity_deduction)
                     del args["deductions"]
@@ -626,7 +626,6 @@ class OrderAPI(Resource):
 
     def _order_put_params(self):
         args = self.reqparser.parse_args()
-        print args
         # 客户与供应商的关系未知
         # if args.customer_name is not None:
         #     args.customer_id = User.query.filter_by(userName=args.customer_name).first().id
@@ -772,7 +771,6 @@ class OrderListAPI(Resource):
 
     def post(self):
         args = self._order_post_params()
-        print args
         required = self.reqparser_post_required.parse_args()
         for value in required.values():
             if value is None: raise Exception("nothing")
