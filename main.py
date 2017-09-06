@@ -574,8 +574,6 @@ class OrderAPI(Resource):
                 if "deductions" in args:
                     deductions = request.json["deductions"] if type(request.json['deductions']) is list else [request.json['deductions']]
                     for deduction in deductions:
-                        print entity.charge_number
-                        print entity.serial_number
                         deduction['serial_number'] = entity.serial_number
                         deduction['charge_number'] = entity.charge_number
                         entity_deduction = DeductionOrder(**deduction)
