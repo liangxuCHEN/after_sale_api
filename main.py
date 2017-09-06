@@ -212,7 +212,7 @@ class DutyReport(db.Model):
             "duty_to_id": self.duty_to_id,
             "duty_to": self.duty_to,
             "order_id": self.order_id,
-            "duty_date": self.DutyDate
+            "duty_date": self.DutyDate.strftime("%Y-%m-%d") if self.DutyDate is not None else ""
         }
         
 
