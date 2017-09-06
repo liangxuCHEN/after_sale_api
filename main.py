@@ -256,8 +256,8 @@ class WaixieOrder(db.Model):
     workflow_status = db.Column(db.Integer, nullable=False) #流程状态
     remark = db.Column(db.UnicodeText)  #异常描述
     
-    material_supplier_id = db.Column(db.Integer) # 保留原有的表结构, 供应商表id, accuser
-    material_supplier_name = db.Column(db.Unicode(100))  #  accuser 
+    accuser_id = db.Column(db.Integer) # 保留原有的表结构, 供应商表id, accuser
+    accuser_name = db.Column(db.Unicode(100))  #  accuser 
     customer_id = db.Column(db.Integer) #客户id， user表id
     customer_name = db.Column(db.Unicode(100))   # charged
     creater_id = db.Column(db.Integer) #创建者id, user表id
@@ -299,10 +299,10 @@ class WaixieOrder(db.Model):
         self.duty_report = DutyReport.query.filter_by(order_id = self.id).all()
         self.customer = Supplier.query.filter_by(id=self.customer_id).first() or Supplier.query.filter_by(supplierName=self.customer_name).first()
         
-        self.material_supplier = Supplier.query.filter_by(id=self.material_supplier_id).first() or Supplier.query.filter_by(supplierName=self.material_supplier_id).first()
+        self.accuser = Supplier.query.filter_by(id=self.accuser_id).first() or Supplier.query.filter_by(supplierName=self.accuser_name).first()
         self.creater = User.query.filter_by(id=self.creater_id).first() or User.query.filter_by(userName=self.creater_name).first()
         if self.saler_id:
-            self.saler = User.query.filter_by(id=self.saler_id if self.saler_id else self.material_supplier.AfterSalerId).first()
+            self.saler = User.query.filter_by(id=self.saler_id if self.saler_id else self.customer.AfterSalerId).first()
         else:
             self.saler = None
         return {
@@ -312,7 +312,7 @@ class WaixieOrder(db.Model):
             'charge_type': self.charge_type,
             'type': self.type,
             'customer_name': self.customer.supplierName if self.customer is not None else "",
-            'accuser_name': self.material_supplier.supplierName if self.material_supplier is not None else "",
+            'accuser_name': self.accuser.supplierName if self.accuser is not None else "",
             'creater_name': self.creater.userName if self.creater is not None else "",
             'material_number': self.material_number,
             'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at is not None else "",
@@ -496,7 +496,7 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("type", type=unicode, location="json")
         self.reqparser.add_argument("customer_name", type=unicode, location="json")
         self.reqparser.add_argument("material_number", type=unicode, location="json")
-        self.reqparser.add_argument("material_supplier_name", type=unicode, location="json")
+        self.reqparser.add_argument("accuser_name", type=unicode, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
         self.reqparser.add_argument("operation", type=unicode, location="json")
         self.reqparser.add_argument("operator_name", type=unicode, location="json")
@@ -599,13 +599,13 @@ class OrderAPI(Resource):
 
     def _order_put_params(self):
         args = self.reqparser.parse_args()
-
+        print args
         # 客户与供应商的关系未知
         # if args.customer_name is not None:
         #     args.customer_id = User.query.filter_by(userName=args.customer_name).first().id
-        if args.material_supplier_name is not None:
-            material_supplier = Supplier.query.filter_by(supplierName=args.material_supplier_name).first()
-            if material_supplier is not None: args.material_supplier_id = material_supplier.id
+        if args.accuser_name is not None:
+            accuser = Supplier.query.filter_by(supplierName=args.accuser_name).first()
+            if accuser is not None: args.accuser_id = accuser.id
 
         if args.customer_name is not None:
             customer = Supplier.query.filter_by(supplierName=args.customer_name).first()
@@ -694,8 +694,8 @@ class OrderListAPI(Resource):
         self.reqparser.add_argument("material_number", type=unicode, location="json")
         self.reqparser.add_argument("creater_name", type=unicode, location="json")
         self.reqparser.add_argument("creater_id", type=int, location="json")
-        self.reqparser.add_argument("material_supplier_name", type=unicode, location="json")
-        self.reqparser.add_argument("material_supplier_id", type=int, location="json")
+        self.reqparser.add_argument("accuser_name", type=unicode, location="json")
+        self.reqparser.add_argument("accuser_id", type=int, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
         self.reqparser.add_argument("type", type=unicode, location="json")
         self.reqparser.add_argument("reason", type=unicode, location="json")
@@ -709,8 +709,8 @@ class OrderListAPI(Resource):
         self.reqparser_post_optional.add_argument("creater_name", type=unicode, location="json")
         self.reqparser_post_optional.add_argument("material_number", type=unicode, location="json")
         self.reqparser_post_optional.add_argument("creater_id", type=int, location="json")
-        self.reqparser_post_optional.add_argument("material_supplier_id", type=int, location="json")
-        self.reqparser_post_optional.add_argument("material_supplier_name", type=unicode, location="json")
+        self.reqparser_post_optional.add_argument("accuser_id", type=int, location="json")
+        self.reqparser_post_optional.add_argument("accuser_name", type=unicode, location="json")
         # 销售负责人不用传递
         #self.reqparser_post_optional.add_argument("saler_name", type=unicode, location="json")
         #self.reqparser_post_required.add_argument("saler_id", type=unicode, location="json")
@@ -767,10 +767,10 @@ class OrderListAPI(Resource):
             creater = User.query.filter_by(userName=args.creater_name).first()
             if creater is not None: args.creater_id = creater.id
             #del args["creater_name"]
-        if args.material_supplier_name is not None:
-            material_supplier = Supplier.query.filter_by(supplierName=args.material_supplier_name).first()
-            if material_supplier is not None: args.material_supplier_id = material_supplier.id
-            #del args["material_supplier_name"]
+        if args.accuser_name is not None:
+            accuser = Supplier.query.filter_by(supplierName=args.accuser_name).first()
+            if accuser is not None: args.accuser_id = accuser.id
+            #del args["accuser_name"]
         if args.customer_name is not None:
             customer = Supplier.query.filter_by(supplierName=args.customer_name).first()
             if customer is not None:
