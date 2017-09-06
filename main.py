@@ -162,8 +162,7 @@ class DeductionOrder(db.Model):
     #Q 财务扣款单
     __tablename__ = "T_AS_DeductionOrder"
     id = db.Column(db.Integer, primary_key=True)
-    serial_number = db.Column(db.Unicode(100))
-    charge_number = db.Column(db.Unicode(100))
+    order_id = db.Column(db.Integer)
     created_at = db.Column(db.DateTime)
     remark = db.Column(db.UnicodeText)  # 扣款备注
     has_receipt = db.Column(db.Unicode(10))  # 是否开票
@@ -173,8 +172,7 @@ class DeductionOrder(db.Model):
         
         return {
             "id": self.id,
-            "serial_number": self.serial_number,
-            "charge_number": self.charge_number,
+            "order_id": self.order_id,
             "compensation": self.compensation,
             "remark": self.remark,
             "has_receipt": self.has_receipt,
@@ -309,7 +307,7 @@ class WaixieOrder(db.Model):
     def to_json(self):
         self.abnormal_products = AbnormalProduct.query.filter_by(waixieOrder_id = self.id)
         self.tracks = OrderTrack.query.filter_by(order_id = self.id)
-        self.deductions = DeductionOrder.query.filter_by(charge_number = self.charge_number) or DeductionOrder.query.filter_by(serial_number = self.serial_number)
+        self.deductions = DeductionOrder.query.filter_by(order_id = self.order_id)
         self.duty_report = DutyReport.query.filter_by(order_id = self.id).all()
         self.customer = Supplier.query.filter_by(id=self.customer_id).first() or Supplier.query.filter_by(supplierName=self.customer_name).first()
         
@@ -575,8 +573,7 @@ class OrderAPI(Resource):
                 if "deductions" in args:
                     deductions = request.json["deductions"] if type(request.json['deductions']) is list else [request.json['deductions']]
                     for deduction in deductions:
-                        deduction['serial_number'] = entity.serial_number
-                        deduction['charge_number'] = entity.charge_number
+                        deduction['order_id'] = entity.id
                         deduction['created_at'] = date.today().strftime("%Y-%m-%d %H:%M:%S")
                         entity_deduction = DeductionOrder(**deduction)
                         db.session.add(entity_deduction)
