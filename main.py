@@ -550,8 +550,8 @@ class OrderAPI(Resource):
 
                 if "tracks" in args:
                     tracks = request.json["tracks"]
-                    for tarck in tracks:
-                        entity_track = OrderTrack(remark=tarck["remark"], order_id=entity.id)
+                    for track in tracks:
+                        entity_track = OrderTrack(remark=track["remark"], order_id=entity.id)
                         db.session.add(entity_track)
                     del args["tracks"]
 
