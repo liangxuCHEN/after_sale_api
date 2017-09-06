@@ -90,7 +90,7 @@ class Product(db.Model):
         return {
             "id": self.id,
             "item_name": self.itemName,
-            "sku_code": self.skuCode,
+            "skuCode": self.skuCode,
             "item_code": self.itemCode,
             'img_path': self.ImgPath,
             'SkuName': self.SkuName
