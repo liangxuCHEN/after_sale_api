@@ -163,11 +163,23 @@ class DeductionOrder(db.Model):
     __tablename__ = "T_AS_DeductionOrder"
     id = db.Column(db.Integer, primary_key=True)
     serial_number = db.Column(db.Unicode(100))
-    # 扣款供应商
     charge_number = db.Column(db.Unicode(100))
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     remark = db.Column(db.UnicodeText)  # 扣款备注
     has_receipt = db.Column(db.Unicode(10))  # 是否开票
+    compensation = db.Column(db.Integer)  # charge price
+
+    def to_json(self):
+        
+        return {
+            "id": self.id,
+            "serial_number": self.serial_number,
+            "charge_number": self.charge_number,
+            "compensation": self.compensation,
+            "remark": self.remark,
+            "has_receipt": self.has_receipt,
+            "created_at": self.created_at
+        }
 
 
 class DutyReport(db.Model):
@@ -296,6 +308,7 @@ class WaixieOrder(db.Model):
     def to_json(self):
         self.abnormal_products = AbnormalProduct.query.filter_by(waixieOrder_id = self.id)
         self.tracks = OrderTrack.query.filter_by(order_id = self.id)
+        self.deductions = DeductionOrder.query.filter_by(charge_number = self.charge_number) or DeductionOrder.query.filter_by(serial_number = self.serial_number)
         self.duty_report = DutyReport.query.filter_by(order_id = self.id).all()
         self.customer = Supplier.query.filter_by(id=self.customer_id).first() or Supplier.query.filter_by(supplierName=self.customer_name).first()
         
@@ -324,6 +337,7 @@ class WaixieOrder(db.Model):
             'abnormal_porducts': [e.to_json() for e in self.abnormal_products],
             'tracks': [e.to_json() for e in self.tracks],
             'duty_report': [e.to_json() for e in self.duty_report],
+            'deductions': [e.to_json() for e in self.deductions],
             'remark': self.remark,
             'saler': self.saler.userName if self.saler else "",
             "reason": self.reason
@@ -504,6 +518,7 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("duty_report", type=dict, location="json")
         self.reqparser.add_argument("reason", type=unicode, location="json")
         self.reqparser.add_argument("tracks", type=list, location="json")
+        self.reqparser.add_argument("deductions", type=list, location="json")
         self.reqparser.add_argument("charge_type", type=unicode, location="json")
 
 
@@ -549,15 +564,27 @@ class OrderAPI(Resource):
                     del args["abnormal_products"]
 
                 if "tracks" in args:
-                    tracks = request.json["tracks"]
+                    tracks = request.json["tracks"] if type(request.json['tracks']) is list else [request.json['tracks']]
                     for track in tracks:
                         entity_track = OrderTrack(remark=track["remark"], order_id=entity.id)
                         db.session.add(entity_track)
                     del args["tracks"]
 
+
+                if "deductions" in args:
+                    deductions = request.json["deductions"] if type(request.json['deductions']) is list else [request.json['deductions']]
+                    for deduction in deductions:
+                        print entity.charge_number
+                        print entity.serial_number
+                        deduction['serial_number'] = entity.serial_number
+                        deduction['charge_number'] = entity.charge_number
+                        entity_deduction = DeductionOrder(**deduction)
+                        db.session.add(entity_deduction)
+                    del args["deductions"]
+
                 
                 if "duty_report" in args:
-                    duty_reports = request.json["duty_report"] if type(request.json["duty_report"]) is list else [request.json["duty_report"]] 
+                    duty_reports = request.json["duty_report"] if type(request.json["duty_report"]) is list else [request.json["duty_report"]]
                     for report in duty_reports:
                         report["order_id"] = entity.id
                         entity_report = DutyReport(**report)
