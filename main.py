@@ -587,7 +587,17 @@ class OrderAPI(Resource):
                     duty_reports = request.json["duty_report"] if type(request.json["duty_report"]) is list else [request.json["duty_report"]]
                     for report in duty_reports:
                         report["order_id"] = entity.id
-                        entity_report = DutyReport(**report)
+                        # 过滤参数
+                        entity_report = DutyReport(
+                            abnormal_type=report['abnormal_type'],
+                            abnormal_reason=report['abnormal_reason'],
+                            publishment=report['publishment'],
+                            order_id=report['order_id'],
+                            compensation=report['compensation'],
+                            duty_to=report['duty_to'],
+                            DutyDate=report['DutyDate'],
+                            publish_to=report['publish_to']
+                        )
                         db.session.add(entity_report)
                     del args["duty_report"]
                 # 主流程控制，从制定到放弃
