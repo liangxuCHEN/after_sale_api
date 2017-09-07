@@ -535,6 +535,10 @@ class OrderAPI(Resource):
         args = self._order_put_params()
         # 使用了reqparser后可以防止过度防御
         print args
+
+        # 更新UPDATE时间
+        args['updated_at']=datetime.today().strftime("%Y-%m-%d %H:%M:%S")
+        
         that_journal = {}
         if "operation" in args:
             that_journal["trigger"] = args["operation"]
@@ -779,8 +783,8 @@ class OrderListAPI(Resource):
     def post(self):
         args = self._order_post_params()
         required = self.reqparser_post_required.parse_args()
-        for value in required.values():
-            if value is None: raise Exception("nothing")
+        #for value in required.values():
+        #    if value is None: raise Exception("nothing")
 
         entity = WaixieOrder(**args)
         db.session.add(entity)
