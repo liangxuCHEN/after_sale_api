@@ -40,8 +40,11 @@ after_service_trigger = [
     {'trigger': 'reject', 'source':'service_approving', 'dest':'waitting'},
     {'trigger': 'done', 'source':'service_approving', 'dest': 'service_approved'},
     {'trigger': 'reject', 'source':'service_approved', 'dest':'service_approving'},
-    {'trigger': 'done', 'source':'service_approved', 'dest': 'manager_reviewing'},
+    # {'trigger': 'done', 'source':'service_approved', 'dest': 'manager_reviewing'},
+    {'trigger': 'done', 'source':'service_approved', 'dest': 'manager_reviewed'},
     {'trigger': 'reject', 'source':'manager_reviewing', 'dest':'service_approved'},
+    # change:  dont use manager_reviewing
+    {'trigger': 'reject', 'source':'manager_reviewed', 'dest':'service_approved'},
     {'trigger': 'done', 'source':'manager_reviewing', 'dest': 'manager_reviewed'},
     {'trigger': 'reject', 'source':'manager_reviewed', 'dest':'manager_reviewing'},
     {'trigger': 'done', 'source':'manager_reviewed', 'dest': 'chief_reviewing'},

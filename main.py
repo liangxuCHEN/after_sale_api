@@ -307,7 +307,7 @@ class WaixieOrder(db.Model):
     def to_json(self):
         self.abnormal_products = AbnormalProduct.query.filter_by(waixieOrder_id = self.id)
         self.tracks = OrderTrack.query.filter_by(order_id = self.id)
-        self.deductions = DeductionOrder.query.filter_by(order_id = self.order_id)
+        self.deductions = DeductionOrder.query.filter_by(order_id = self.id)
         self.duty_report = DutyReport.query.filter_by(order_id = self.id).all()
         self.customer = Supplier.query.filter_by(id=self.customer_id).first() or Supplier.query.filter_by(supplierName=self.customer_name).first()
         
@@ -810,7 +810,8 @@ class OrderListAPI(Resource):
                 args.saler_id = customer.AfterSalerId
                 if args.saler_id is not None:
                     saler = User.query.filter_by(id=args.saler_id).first()
-                    args.saler_name = saler.userName
+                    if saler: 
+                        args.saler_name = saler.userName
         return args
 
 
