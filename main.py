@@ -19,6 +19,8 @@ from transitions import MachineError
 from datetime import datetime, date, timedelta
 import os, json, pdb
 from aenum import Enum
+import urlparse
+
 
 
 
@@ -474,12 +476,14 @@ def api_abproduct_remove():
         return jsonify({"data":"", "message":""}), 200
 
 # 迫不得已的方法：移动端fetch-创建订单不成功
-@app.route('/api/v1/afterservice/app_orders', methods=["POST"])
+@app.route('/api/v1/afterservice/app_orders', methods=["GET"])
 def api_app_create_order():
     # 参数要求,OrderApi一样
-    args = request.json
+    print 'url',
+    query = urlparse.urlparse(request.url).query
+    args = dict([(k, v[0]) for k, v in urlparse.parse_qs(query).items()])
+
     print args
-    print type(args)
     args['status'] = AfterServiceStatus["waitting"].value
     args['workflow_status'] = WorkflowStatus['in_progress'].value
     # 客户与供应商的关系未知
