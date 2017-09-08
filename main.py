@@ -278,7 +278,7 @@ class WaixieOrder(db.Model):
     #Q 售后专员？？ A：是
     saler_id = db.Column(db.Integer)     #销售者id, user表id
     saler_name = db.Column(db.Unicode(100))
-    reason = db.Column(db.Unicode(20)) #原因
+    reason = db.Column(db.UnicodeText) #原因
     charge_number = db.Column(db.Unicode(14))  # 扣款单据编号
     charge_type = db.Column(db.Unicode(100))  # charge type
     created_at = db.Column(db.DateTime, server_default=db.func.now())
@@ -688,8 +688,10 @@ class OrderAPI(Resource):
             if customer is not None:
                 args.customer_id = customer.id
                 args.saler_id = customer.AfterSalerId
-                saler = User.query.filter_by(id=args.saler_id).first()
-                args.saler_name = saler.userName
+                if args.saler_id:
+                    saler = User.query.filter_by(id=args.saler_id).first()
+                    if saler:
+                        args.saler_name = saler.userName
         for key, item in args.items():
             if item is None: del args[key]
         return args
@@ -813,7 +815,7 @@ class OrderListAPI(Resource):
         else:
             query = WaixieOrder.query
 
-        query = query.order_by(db.desc(WaixieOrder.created_at))  # 创建时间排序
+        query = query.order_by(db.desc(WaixieOrder.updated_at))  # 时间排序
         if args.page and args.per_page:
             entities = query.paginate(args.page, args.per_page).items
         else:
