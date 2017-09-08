@@ -803,6 +803,7 @@ class OrderListAPI(Resource):
         args = self.reqparser_get.parse_args()
         if args.status is not None or args.creater_name is not None or args.workflow_status is not None:
             query = WaixieOrder.query.join(User, WaixieOrder.creater_id==User.id)
+
             if args.workflow_status is not None:
                 query = query.filter(WaixieOrder.workflow_status == WorkflowStatus[args.workflow_status].value)
             if args.status is not None:
@@ -811,7 +812,8 @@ class OrderListAPI(Resource):
                 query = query.filter(User.userName == args.creater_name) 
         else:
             query = WaixieOrder.query
-        
+
+        query = query.order_by(db.desc(WaixieOrder.created_at))  # 创建时间排序
         if args.page and args.per_page:
             entities = query.paginate(args.page, args.per_page).items
         else:
