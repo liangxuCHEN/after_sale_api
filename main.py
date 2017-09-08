@@ -447,6 +447,23 @@ def api_all_products():
 
     return jsonify({"data": [e.to_json() for e in entity], "message": "ok", "status": 0}), 200
 
+
+@app.route('/api/v1/afterservice/all-users')
+def api_all_users():
+    # 做个产品查询接口
+    query = db.session.query(User)
+    if "key_word" in request.args:
+        key_word = request.args["key_word"]
+        query_list = [
+            getattr(User, "userName").like(u"%{}%".format(key_word)),
+        ]
+        query = query.filter(db.or_(*query_list))
+
+    entity = query.all()
+
+    return jsonify({"data": [e.to_json() for e in entity], "message": "ok", "status": 0}), 200
+
+
 @app.route('/api/v1/afterservice/<int:waixie_id>/journals')
 def api_journals(waixie_id):
     query = db.session.query(WorkflowJournal).filter_by(workflow_id=waixie_id)
