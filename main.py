@@ -472,7 +472,42 @@ def api_abproduct_remove():
         return jsonify({}), 200
     else:
         return jsonify({"data":"", "message":""}), 200
-            
+
+# 迫不得已的方法：移动端fetch-创建订单不成功
+@app.route('/api/v1/afterservice/app_orders', methods=["POST"])
+def api_app_create_order():
+    # 参数要求,OrderApi一样
+    args = request.json
+    print args
+    print type(args)
+    args['status'] = AfterServiceStatus["waitting"].value
+    args['workflow_status'] = WorkflowStatus['in_progress'].value
+    # 客户与供应商的关系未知
+    # if args.customer_name is not None:
+    #     args.customer_id = User.query.filter_by(userName=args.customer_name).first().id
+    if args['creater_name'] is not None:
+        creater = User.query.filter_by(userName=args['creater_name']).first()
+        if creater is not None: args['creater_id'] = creater.id
+        # del args["creater_name"]
+    if args['accuser_name'] is not None:
+        accuser = Supplier.query.filter_by(supplierName=args['accuser_name']).first()
+        if accuser is not None: args['accuser_id'] = accuser.id
+        # del args["accuser_name"]
+    if args['customer_name'] is not None:
+        customer = Supplier.query.filter_by(supplierName=args['customer_name']).first()
+        if customer is not None:
+            args['customer_id'] = customer.id
+            args['saler_id'] = customer.AfterSalerId
+            if args['saler_id'] is not None:
+                saler = User.query.filter_by(id=args['saler_id']).first()
+                if saler:
+                    args['saler_name'] = saler.userName
+
+    entity = WaixieOrder(**args)
+    db.session.add(entity)
+    db.session.commit()
+    return jsonify({"message": "ok", "data": entity.to_json(), "status": 0}), 200
+
 
 @app.route('/api/v1/afterservice/dutyreports/abnormalrank')
 def api_abnormal_rank():
@@ -483,7 +518,7 @@ def api_abnormal_rank():
 def api_type_rank():
     return jsonify({"data": REPORTTYPE, "message": "ok", "status": 0}), 200
 
-        
+
 @app.route('/api/v1/afterservice/dutyreports/reasonrank')
 def api_reason_rank():
     return jsonify({"data": ABNORMALREASON, "message": "ok", "status": 0}), 200
@@ -841,7 +876,7 @@ class DutyReportAPI(Resource):
         self.reqparser_put.add_argument("publish_to", type=unicode, location="json")
         self.reqparser_put.add_argument("compensation", type=unicode, location="json")
         self.reqparser_put.add_argument("duty_to", type=unicode, location="json")
-        self.reqparser_put.add_argument("", type=unicode, location="json")
+        self.reqparser_put.add_argument("DutyDate", type=unicode, location="json")
         super(DutyReportAPI, self).__init__()
     
     def put(self, report_id):
