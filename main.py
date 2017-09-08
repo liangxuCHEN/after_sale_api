@@ -781,15 +781,17 @@ class OrderListAPI(Resource):
         return {"message": "ok", "data": [e.to_json() for e in entities], "status": 0}, 200
 
     def post(self):
+        #return {"message": "value required not found", "data": "", "status": 500}, 200
         args = self._order_post_params()
         required = self.reqparser_post_required.parse_args()
-        #for value in required.values():
-        #    if value is None: raise Exception("nothing")
+        for value in required.values():
+            if value is None:
+                return {"message": "value required not found", "data": "", "status": 500}, 200
 
         entity = WaixieOrder(**args)
         db.session.add(entity)
         db.session.commit()
-        return {"message": "ok", "data": entity.to_json(), "status": 0}, 200
+        return {"message": "ok", "data":"" , "status": 0}, 200
 
     def _order_post_params(self):
         args = self.reqparser.parse_args()
