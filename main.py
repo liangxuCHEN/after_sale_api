@@ -496,11 +496,11 @@ def api_abproduct_remove():
 @app.route('/api/v1/afterservice/app_orders', methods=["GET"])
 def api_app_create_order():
     # 参数要求,OrderApi一样
-    print 'url',
+    #print 'url',
     query = urlparse.urlparse(request.url).query
     args = dict([(k, v[0]) for k, v in urlparse.parse_qs(query).items()])
 
-    print args
+    #print args
     args['status'] = AfterServiceStatus["waitting"].value
     args['workflow_status'] = WorkflowStatus['in_progress'].value
     # 客户与供应商的关系未知
@@ -590,7 +590,7 @@ class OrderAPI(Resource):
     def put(self, id):
         args = self._order_put_params()
         # 使用了reqparser后可以防止过度防御
-        print args
+        #print args
 
         # 更新UPDATE时间
         args['updated_at']=datetime.today().strftime("%Y-%m-%d %H:%M:%S")
