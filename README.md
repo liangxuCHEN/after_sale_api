@@ -26,3 +26,5 @@ status=&workflow_status=&creater_name=&page=&per_page=   售后单访问
 
 
 ## 详细API文档说明在API_doc.pdf
+
+[api 文档](http://192.168.1.115:7500/after_sale_api)
