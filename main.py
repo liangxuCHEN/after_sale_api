@@ -660,7 +660,7 @@ class OrderAPI(Resource):
                         db.session.add(entity_report)
                     del args["duty_report"]
 
-                # 主流程控制，从制定到放弃
+                # 主流程控制
                 if flow.workflow.state is not "in_progress":
                     return {"message": "invalid operaton, call developer for more", "status": 500}
                 elif "trigger" in that_journal:
