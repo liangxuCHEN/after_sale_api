@@ -191,6 +191,7 @@ class DutyReport(db.Model):
     publishment = db.Column(db.UnicodeText)
     publish_to = db.Column(db.Unicode(50))
     compensation = db.Column(db.Integer)
+    sale_compensation = db.Column(db.Integer)
     duty_to_id = db.Column(db.Integer)
     duty_to = db.Column(db.Unicode(100))
     #Q 缺了个责任判定日期 A:确实
@@ -209,6 +210,7 @@ class DutyReport(db.Model):
             "publishment": self.publishment,
             "publish_to": self.publish_to,
             "compensation": self.compensation,
+            "sale_compensation": self.sale_compensation,
             "duty_to_id": self.duty_to_id,
             "duty_to": self.duty_to,
             "order_id": self.order_id,
@@ -639,7 +641,6 @@ class OrderAPI(Resource):
                         db.session.add(entity_deduction)
                     del args["deductions"]
 
-                
                 if "duty_report" in args:
                     duty_reports = request.json["duty_report"] if type(request.json["duty_report"]) is list else [request.json["duty_report"]]
                     for report in duty_reports:
@@ -651,12 +652,14 @@ class OrderAPI(Resource):
                             publishment=report['publishment'],
                             order_id=report['order_id'],
                             compensation=report['compensation'],
+                            sale_compensation=report['sale_compensation'],
                             duty_to=report['duty_to'],
                             DutyDate=report['DutyDate'],
                             publish_to=report['publish_to']
                         )
                         db.session.add(entity_report)
                     del args["duty_report"]
+
                 # 主流程控制，从制定到放弃
                 if flow.workflow.state is not "in_progress":
                     return {"message": "invalid operaton, call developer for more", "status": 500}
@@ -794,10 +797,11 @@ class OrderListAPI(Resource):
         self.reqparser.add_argument("remark", type=unicode, location="json")
         self.reqparser.add_argument("type", type=unicode, location="json")
         self.reqparser.add_argument("reason", type=unicode, location="json")
-        # post 必须参数
-        self.reqparser_post_required = reqparse.RequestParser()
         self.reqparser_post_required.add_argument("customer_name", type=unicode, location="json")
         self.reqparser_post_required.add_argument("remark", type=unicode, location="json")
+        # post 必须参数
+        self.reqparser_post_required = reqparse.RequestParser()
+        self.reqparser.add_argument("accuser_name", type=unicode, location="json")
         self.reqparser_post_required.add_argument("reason", type=unicode, location="json")
         # post 可选参数
         self.reqparser_post_optional = reqparse.RequestParser()
