@@ -815,6 +815,7 @@ class OrderListAPI(Resource):
         #self.reqparser_post_required.add_argument("saler_id", type=unicode, location="json")
         self.reqparser_get = reqparse.RequestParser()
         self.reqparser_get.add_argument("status", type=unicode)
+        self.reqparser_get.add_argument("status_rest", type=unicode)
         self.reqparser_get.add_argument("workflow_status", type=unicode)
         self.reqparser_get.add_argument("creater_name", type=unicode)
         self.reqparser_get.add_argument("page", type=int)
@@ -824,13 +825,15 @@ class OrderListAPI(Resource):
     def get(self):
         
         args = self.reqparser_get.parse_args()
-        if args.status is not None or args.creater_name is not None or args.workflow_status is not None:
+        if args.status is not None or args.status_rest is not None or args.creater_name is not None or args.workflow_status is not None:
             query = WaixieOrder.query.join(User, WaixieOrder.creater_id==User.id)
 
             if args.workflow_status is not None:
                 query = query.filter(WaixieOrder.workflow_status == WorkflowStatus[args.workflow_status].value)
             if args.status is not None:
                 query = query.filter(WaixieOrder.status == AfterServiceStatus[args.status].value)
+            if args.status_rest is not None:
+                query = query.filter(WaixieOrder.status >= AfterServiceStatus[args.status_rest].value)
             if args.creater_name is not None:
                 query = query.filter(User.userName == args.creater_name) 
         else:

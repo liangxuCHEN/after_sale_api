@@ -55,4 +55,6 @@ after_service_trigger = [
     {'trigger': 'reject', 'source':'finance_reviewing', 'dest':'chief_reviewed'},
     {'trigger': 'done', 'source':'finance_reviewing', 'dest': 'end'},
     {'trigger': 'reject', 'source':'end', 'dest':'finance_reviewing'},
+    # 不产生扣款单，流程马上结束
+    {'trigger': 'end', 'source': 'service_approved', 'dest': 'manager_reviewing'},
 ]
