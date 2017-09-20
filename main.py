@@ -776,10 +776,12 @@ class WaixieAbnormalProductListApi(Resource):
         res = {}
         if "skuCode" in data:
             res["skuCode"] = data["skuCode"]
-            product_entity = Product.query.filter_by(skuCode = data["skuCode"]).first()
-            if product_entity is not None: res["product_id"] = product_entity.id
+            # product_entity = Product.query.filter_by(skuCode = data["skuCode"]).first()
+            # if product_entity is not None: res["product_id"] = product_entity.id
         if "product_id" in data:
             res["product_id"] = data["product_id"]
+        if "product_item_name" in data:
+            res["product_item_name"] = data["product_item_name"]
         if "remark" in data:
             res["remark"] = data["remark"]
         if "waixieOrder_id" in data:
