@@ -782,6 +782,8 @@ class WaixieAbnormalProductListApi(Resource):
             res["product_id"] = data["product_id"]
         if "product_item_name" in data:
             res["product_item_name"] = data["product_item_name"]
+        if "item_name" in data:
+            res["product_item_name"] = data["item_name"]
         if "remark" in data:
             res["remark"] = data["remark"]
         if "waixieOrder_id" in data:
