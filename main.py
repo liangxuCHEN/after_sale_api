@@ -225,6 +225,7 @@ class AbnormalProduct(db.Model):
     product_id = db.Column(db.Integer) 
     waixieOrder_id = db.Column(db.Integer)
     remark = db.Column(db.UnicodeText)
+    product_item_name = db.Column(db.UnicodeText)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
 
@@ -233,12 +234,12 @@ class AbnormalProduct(db.Model):
     #     )
 
     def to_json(self):
-        product_entity = Product.query.filter_by(skuCode = self.skuCode).first()
+        # product_entity = Product.query.filter_by(skuCode = self.skuCode).first()
         return {
             "id": self.id,
             "skuCode": self.skuCode,
             "remark": self.remark,
-            "product_itemName": product_entity.itemName if product_entity is not None else "",
+            "product_itemName": self.product_item_name,
             "waixieOrder_id": self.waixieOrder_id
         }
 
