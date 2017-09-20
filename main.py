@@ -621,7 +621,11 @@ class OrderAPI(Resource):
                 if "abnormal_products" in args:
                     abnormal_products = request.json["abnormal_products"]
                     for product in abnormal_products:
-                        entity_product = AbnormalProduct(skuCode=product["skuCode"], remark=product["remark"], waixieOrder_id=entity.id)
+                        entity_product = AbnormalProduct(
+                            skuCode=product["skuCode"],
+                            remark=product["remark"],
+                            product_item_name=product['item_name'],
+                            waixieOrder_id=entity.id)
                         db.session.add(entity_product)
                     del args["abnormal_products"]
 
