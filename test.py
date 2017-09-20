@@ -84,6 +84,11 @@ def simple_put_ab_test():
     resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/2/abnormal-products/11', json={"remark": "game"})
     print resp.json()
 
+
+def simple_delet_test():
+    resp = requests.delete('http://localhost:5050/api/v1/afterservice/deductionOrder/35')
+    print resp.json()
+
 if __name__ == "__main__":
     # method = sys.argv[1]
     # params = sys.argv[2:]
@@ -92,4 +97,4 @@ if __name__ == "__main__":
     #     globals()["_".join(["simple", method, "test"])](*params)
     # else:
     #     globals()["_".join(["simple", method, "test"])]()
-    simple_put_test()
+    simple_delet_test()

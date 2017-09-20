@@ -933,8 +933,19 @@ class DutyReportAPI(Resource):
         return {"message": "ok", "data":{}, "status": 0}
 
 
+class DeductionOrderAPI(Resource):
+    def __init__(self):
+        super(DeductionOrderAPI, self).__init__()
+
+    def delete(self, id):
+        entity = DeductionOrder.query.get(id)
+        db.session.delete(entity)
+        db.session.commit()
+        return {"message": "ok", "data":{}, "status": 0}
+
 
 # endpoint 什么意思
+api.add_resource(DeductionOrderAPI, '/api/v1/afterservice/deductionOrder/<int:id>', endpoint='afterservice.deduction')
 api.add_resource(OrderAPI, '/api/v1/afterservice/orders/<int:id>', endpoint='afterservice.order')
 api.add_resource(OrderListAPI, '/api/v1/afterservice/orders', endpoint='afterservice.orders')
 api.add_resource(OrderJournalListAPI, '/api/v1/afterservice/orders/journals', endpoint="afterservice.order.journals")
