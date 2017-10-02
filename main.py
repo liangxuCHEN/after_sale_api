@@ -424,6 +424,7 @@ def api_supplier_user_matcher():
     res = [
             {
                 "supplier_name": entity_supplier.supplierName if entity_supplier is not None else "",
+                "role": '材料商' if entity_supplier.IsLogisticSupplier else '成品商', 
                 "afterservice_salername": entity_user.userName if entity_user is not None else ""
             } for (entity_supplier, entity_user) in entity_pairs
         ] 
