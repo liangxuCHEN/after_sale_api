@@ -413,7 +413,13 @@ def api_supplier_user_matcher():
                         getattr(User, "userName").like(u"%{}%".format(key_word)),
                     ]
         query = query.filter(db.or_(*query_list))
-    
+    if "role" in request.args:
+        if request.args["role"] == u'材料商':
+            role = True
+        else:
+            role = False
+        query = query.filter(Supplier.IsLogisticSupplier == role)
+
     if "page" in request.args and "per_page" in request.args:
         page = int(request.args["page"])
         per_page = int(request.args["per_page"])
