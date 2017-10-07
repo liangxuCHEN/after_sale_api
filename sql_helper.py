@@ -11,6 +11,8 @@ CONNECTION = {
     "database": "BSPRODUCTCENTER",
     "charset": "utf8"
 }
+
+
 class SqlHelper(object):
     def __init__(self):
         self._conn = pymssql.connect(**CONNECTION)
@@ -43,3 +45,14 @@ class SqlHelper(object):
         return self.exec_query(
             "select * from T_PRT_AllProduct"
         )
+
+    def find_user_type(self, user):
+        return self.exec_query(
+            "select * from V_SaleAfteTypePerson where UserName='%s'" % user
+        )
+
+
+if __name__ == '__main__':
+    sql = SqlHelper()
+    res = sql.find_user_type(u'何正杰'.encode('utf-8'))
+    print res

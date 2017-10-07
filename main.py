@@ -20,8 +20,7 @@ from datetime import datetime, date, timedelta
 import os, json, pdb
 from aenum import Enum
 import urlparse
-
-
+from sql_helper import SqlHelper
 
 
 base_dir = os.path.abspath(os.path.dirname(__name__))
@@ -834,14 +833,14 @@ class OrderListAPI(Resource):
         self.reqparser_get.add_argument("creater_name", type=unicode)
         self.reqparser_get.add_argument("page", type=int)
         self.reqparser_get.add_argument("per_page", type=int)
-        self.reqparser_get.add_argument("type", type=unicode)
+        self.reqparser_get.add_argument("saler_name", type=unicode)
         super(OrderListAPI, self).__init__()
 
     def get(self):
         
         args = self.reqparser_get.parse_args()
         if args.status is not None or args.status_rest is not None or args.creater_name is not None or \
-                        args.workflow_status is not None or args.type is not None:
+                        args.workflow_status is not None or args.saler_name is not None:
             query = WaixieOrder.query.join(User, WaixieOrder.creater_id==User.id)
 
             if args.workflow_status is not None:
@@ -852,8 +851,12 @@ class OrderListAPI(Resource):
                 query = query.filter(WaixieOrder.status >= AfterServiceStatus[args.status_rest].value)
             if args.creater_name is not None:
                 query = query.filter(User.userName == args.creater_name)
-            if args.type is not None:
-                query = query.filter(WaixieOrder.type == args.type)
+            if args.saler_name is not None:
+                sql = SqlHelper()
+                res = sql.find_user_type(args.saler_name.encode('utf-8'))
+                if res:
+                    user_type = res[0][0].strip()
+                    query = query.filter(WaixieOrder.type == user_type)
         else:
             query = WaixieOrder.query
 
