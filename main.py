@@ -308,7 +308,6 @@ class WaixieOrder(db.Model):
         self.charge_number = "CH%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count))
         super(WaixieOrder, self).__init__(*args, **kwargs)
 
-
     def to_json(self):
         self.abnormal_products = AbnormalProduct.query.filter_by(waixieOrder_id = self.id)
         self.tracks = OrderTrack.query.filter_by(order_id = self.id)
@@ -318,10 +317,10 @@ class WaixieOrder(db.Model):
         
         self.accuser = Supplier.query.filter_by(id=self.accuser_id).first() or Supplier.query.filter_by(supplierName=self.accuser_name).first()
         self.creater = User.query.filter_by(id=self.creater_id).first() or User.query.filter_by(userName=self.creater_name).first()
-        if self.saler_id:
-            self.saler = User.query.filter_by(id=self.saler_id if self.saler_id else self.customer.AfterSalerId).first()
-        else:
-            self.saler = None
+        # if self.saler_id:
+        #     self.saler = User.query.filter_by(id=self.saler_id if self.saler_id else self.customer.AfterSalerId).first()
+        # else:
+        #     self.saler = None
         return {
             'id': self.id,
             'serial_number': self.serial_number,
@@ -343,7 +342,7 @@ class WaixieOrder(db.Model):
             'duty_report': [e.to_json() for e in self.duty_report],
             'deductions': [e.to_json() for e in self.deductions],
             'remark': self.remark,
-            'saler': self.saler.userName if self.saler else "",
+            'saler': self.saler_name,
             "reason": self.reason
         }
 
@@ -524,15 +523,15 @@ def api_app_create_order():
         accuser = Supplier.query.filter_by(supplierName=args['accuser_name']).first()
         if accuser is not None: args['accuser_id'] = accuser.id
         # del args["accuser_name"]
-    if args['customer_name'] is not None:
-        customer = Supplier.query.filter_by(supplierName=args['customer_name']).first()
-        if customer is not None:
-            args['customer_id'] = customer.id
-            args['saler_id'] = customer.AfterSalerId
-            if args['saler_id'] is not None:
-                saler = User.query.filter_by(id=args['saler_id']).first()
-                if saler:
-                    args['saler_name'] = saler.userName
+    # if args['customer_name'] is not None:
+    #     customer = Supplier.query.filter_by(supplierName=args['customer_name']).first()
+        # if customer is not None:
+        #     args['customer_id'] = customer.id
+        #     args['saler_id'] = customer.AfterSalerId
+        #     if args['saler_id'] is not None:
+        #         saler = User.query.filter_by(id=args['saler_id']).first()
+        #         if saler:
+        #             args['saler_name'] = saler.userName
 
     entity = WaixieOrder(**args)
     db.session.add(entity)
@@ -574,6 +573,7 @@ class OrderAPI(Resource):
         self.reqparser = reqparse.RequestParser()
         self.reqparser.add_argument("type", type=unicode, location="json")
         self.reqparser.add_argument("customer_name", type=unicode, location="json")
+        self.reqparser.add_argument("saler_name", type=unicode, location="json")
         self.reqparser.add_argument("material_number", type=unicode, location="json")
         self.reqparser.add_argument("accuser_name", type=unicode, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
@@ -715,15 +715,15 @@ class OrderAPI(Resource):
             accuser = Supplier.query.filter_by(supplierName=args.accuser_name).first()
             if accuser is not None: args.accuser_id = accuser.id
 
-        if args.customer_name is not None:
-            customer = Supplier.query.filter_by(supplierName=args.customer_name).first()
-            if customer is not None:
-                args.customer_id = customer.id
-                args.saler_id = customer.AfterSalerId
-                if args.saler_id:
-                    saler = User.query.filter_by(id=args.saler_id).first()
-                    if saler:
-                        args.saler_name = saler.userName
+        # if args.customer_name is not None:
+        #     customer = Supplier.query.filter_by(supplierName=args.customer_name).first()
+            # if customer is not None:
+            #     args.customer_id = customer.id
+            #     args.saler_id = customer.AfterSalerId
+            #     if args.saler_id:
+            #         saler = User.query.filter_by(id=args.saler_id).first()
+            #         if saler:
+            #             args.saler_name = saler.userName
         for key, item in args.items():
             if item is None: del args[key]
         return args
@@ -813,8 +813,6 @@ class OrderListAPI(Resource):
         self.reqparser.add_argument("remark", type=unicode, location="json")
         self.reqparser.add_argument("type", type=unicode, location="json")
         self.reqparser.add_argument("reason", type=unicode, location="json")
-        self.reqparser.add_argument("customer_name", type=unicode, location="json")
-        self.reqparser.add_argument("remark", type=unicode, location="json")
         # post 必须参数
         self.reqparser_post_required = reqparse.RequestParser()
         self.reqparser_post_required.add_argument("accuser_name", type=unicode, location="json")
@@ -827,7 +825,7 @@ class OrderListAPI(Resource):
         self.reqparser_post_optional.add_argument("accuser_id", type=int, location="json")
         self.reqparser_post_optional.add_argument("accuser_name", type=unicode, location="json")
         # 销售负责人不用传递
-        #self.reqparser_post_optional.add_argument("saler_name", type=unicode, location="json")
+        self.reqparser_post_optional.add_argument("saler_name", type=unicode, location="json")
         #self.reqparser_post_required.add_argument("saler_id", type=unicode, location="json")
         self.reqparser_get = reqparse.RequestParser()
         self.reqparser_get.add_argument("status", type=unicode)
@@ -836,12 +834,14 @@ class OrderListAPI(Resource):
         self.reqparser_get.add_argument("creater_name", type=unicode)
         self.reqparser_get.add_argument("page", type=int)
         self.reqparser_get.add_argument("per_page", type=int)
+        self.reqparser_get.add_argument("type", type=unicode)
         super(OrderListAPI, self).__init__()
 
     def get(self):
         
         args = self.reqparser_get.parse_args()
-        if args.status is not None or args.status_rest is not None or args.creater_name is not None or args.workflow_status is not None:
+        if args.status is not None or args.status_rest is not None or args.creater_name is not None or \
+                        args.workflow_status is not None or args.type is not None:
             query = WaixieOrder.query.join(User, WaixieOrder.creater_id==User.id)
 
             if args.workflow_status is not None:
@@ -851,7 +851,9 @@ class OrderListAPI(Resource):
             if args.status_rest is not None:
                 query = query.filter(WaixieOrder.status >= AfterServiceStatus[args.status_rest].value)
             if args.creater_name is not None:
-                query = query.filter(User.userName == args.creater_name) 
+                query = query.filter(User.userName == args.creater_name)
+            if args.type is not None:
+                query = query.filter(WaixieOrder.type == args.type)
         else:
             query = WaixieOrder.query
 
@@ -892,15 +894,15 @@ class OrderListAPI(Resource):
             accuser = Supplier.query.filter_by(supplierName=args.accuser_name).first()
             if accuser is not None: args.accuser_id = accuser.id
             #del args["accuser_name"]
-        if args.customer_name is not None:
-            customer = Supplier.query.filter_by(supplierName=args.customer_name).first()
-            if customer is not None:
-                args.customer_id = customer.id
-                args.saler_id = customer.AfterSalerId
-                if args.saler_id is not None:
-                    saler = User.query.filter_by(id=args.saler_id).first()
-                    if saler: 
-                        args.saler_name = saler.userName
+        # if args.customer_name is not None:
+        #     customer = Supplier.query.filter_by(supplierName=args.customer_name).first()
+        #     if customer is not None:
+        #         args.customer_id = customer.id
+        #         args.saler_id = customer.AfterSalerId
+        #         if args.saler_id is not None:
+        #             saler = User.query.filter_by(id=args.saler_id).first()
+        #             if saler:
+        #                 args.saler_name = saler.userName
         return args
 
 

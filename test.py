@@ -5,11 +5,9 @@ import requests, json, sys
 
 def fake_waixie():
     required_field = {
-        "type": "aws",
         "customer_name": "成都市金虎家俱有限公司",
         "creater_name": "陈俊文",
-        "remark": "test-post",
-        "reason": "tmp"
+        "saler_name": "陈俊文",
     }
     optional_field = {
         #"material_number": "sku2017082411541503546850",
@@ -28,8 +26,9 @@ def fake_waixie():
     return required_field
 
 def simple_post_test():
-    resp = requests.post('http://192.168.3.172:5050/api/v1/afterservice/orders', json=fake_waixie())
-    #resp = requests.post('http://localhost:5050/api/v1/afterservice/orders', json=fake_waixie())
+    #resp = requests.post('http://192.168.3.172:5050/api/v1/afterservice/orders', json=fake_waixie())
+
+    resp = requests.post('http://localhost:5050/api/v1/afterservice/orders', json=fake_waixie())
     print resp.json()
 
 def simple_get_test(*params):
@@ -49,8 +48,9 @@ def simple_put_test():
     # data['operator_name'] = 'christmas father'
     data['remark'] = "123455555"
     data['material_supplier_name'] = "东莞市景盛家具有限公司"
+    data['saler_name'] = "东莞市"
     #resp = requests.put('http://192.168.3.172:5050/api/v1/afterservice/orders/143', json=data)
-    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/149', json=data)
+    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/542', json=data)
 
     print resp.json()
 def simple_get_one_test():
@@ -97,4 +97,5 @@ if __name__ == "__main__":
     #     globals()["_".join(["simple", method, "test"])](*params)
     # else:
     #     globals()["_".join(["simple", method, "test"])]()
-    simple_delet_test()
+    #simple_get_test({'type': '皮布'})
+    simple_put_test()
