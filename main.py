@@ -116,13 +116,15 @@ class User(db.Model):
     userName = db.Column(db.Unicode(None))
     dptNames = db.Column(db.Unicode(None))
     dptIds = db.Column(db.Unicode(None))
+    Phone = db.Column(db.Unicode(None))
 
     def to_json(self):
         return {
             "id": self.id,
             "user_name": self.userName,
             "dpt_names": self.dptNames,
-            "dpt_ids": self.dptIds
+            "dpt_ids": self.dptIds,
+            "phone": self.Phone
         }
 
 # 以下是新表 Todo: 处理一下db.String的问题
@@ -310,16 +312,16 @@ class WaixieOrder(db.Model):
     def to_json(self):
         self.abnormal_products = AbnormalProduct.query.filter_by(waixieOrder_id = self.id)
         self.tracks = OrderTrack.query.filter_by(order_id = self.id)
-        self.deductions = DeductionOrder.query.filter_by(order_id = self.id)
+        self.deductions = DeductionOrder.query.filter_by(order_id=self.id)
         self.duty_report = DutyReport.query.filter_by(order_id = self.id).all()
         self.customer = Supplier.query.filter_by(id=self.customer_id).first() or Supplier.query.filter_by(supplierName=self.customer_name).first()
         
         self.accuser = Supplier.query.filter_by(id=self.accuser_id).first() or Supplier.query.filter_by(supplierName=self.accuser_name).first()
         self.creater = User.query.filter_by(id=self.creater_id).first() or User.query.filter_by(userName=self.creater_name).first()
-        # if self.saler_id:
-        #     self.saler = User.query.filter_by(id=self.saler_id if self.saler_id else self.customer.AfterSalerId).first()
-        # else:
-        #     self.saler = None
+        if self.saler_name:
+            saler = User.query.filter_by(userName=self.saler_name).first()
+        else:
+            saler = None
         return {
             'id': self.id,
             'serial_number': self.serial_number,
@@ -342,6 +344,7 @@ class WaixieOrder(db.Model):
             'deductions': [e.to_json() for e in self.deductions],
             'remark': self.remark,
             'saler': self.saler_name,
+            'saler_phone': saler.Phone if saler is not None else "",
             "reason": self.reason
         }
 

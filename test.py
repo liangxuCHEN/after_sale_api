@@ -40,6 +40,7 @@ def simple_get_test(*params):
     #resp = requests.get('http://localhost:5050/api/v1/afterservice/orders')
     print resp.json()
 
+
 def simple_put_test():
     data = {}
     #data['serial_number'] = 'SH201707040001'
@@ -53,6 +54,7 @@ def simple_put_test():
     resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/542', json=data)
 
     print resp.json()
+
 def simple_get_one_test():
     #resp = requests.get('http://192.168.3.172:5050/api/v1/afterservice/orders/5')
     resp = requests.get('http://localhost:5050/api/v1/afterservice/orders/5')
@@ -97,5 +99,5 @@ if __name__ == "__main__":
     #     globals()["_".join(["simple", method, "test"])](*params)
     # else:
     #     globals()["_".join(["simple", method, "test"])]()
-    #simple_get_test({'type': '皮布'})
-    simple_put_test()
+    simple_get_test()
+    #simple_put_test()
