@@ -815,6 +815,7 @@ class OrderListAPI(Resource):
         self.reqparser.add_argument("remark", type=unicode, location="json")
         self.reqparser.add_argument("type", type=unicode, location="json")
         self.reqparser.add_argument("reason", type=unicode, location="json")
+        self.reqparser.add_argument("saler_name", type=unicode, location="json")
         # post 必须参数
         self.reqparser_post_required = reqparse.RequestParser()
         self.reqparser_post_required.add_argument("accuser_name", type=unicode, location="json")
