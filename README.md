@@ -4,6 +4,8 @@ API测试环境：192.168.3.172:5050
 
 ```
 python main.py
+gunicorn -c gun.conf gun_main:app
+
 ```
 
 ## API 访问方式
