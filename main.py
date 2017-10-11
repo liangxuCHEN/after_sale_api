@@ -877,6 +877,8 @@ class OrderListAPI(Resource):
                 user_type = UserType.query.filter_by(Leader=args.leader_name).all()
                 if len(user_type) > 0:
                     query = query.filter(WaixieOrder.type == user_type[0].TypeName)
+                else:
+                    return {"message": "ok", "data": '', "status": 0}, 200
         else:
             query = WaixieOrder.query
 
