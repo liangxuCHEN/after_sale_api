@@ -109,6 +109,17 @@ class Supplier(db.Model):
             "supplierName": self.supplierName
         }
 
+class UserType(db.Model):
+    __tablename__ = 'T_SaleAfterType'
+    Id = db.Column(db.Integer, primary_key=True)
+    TypeName = db.Column(db.Unicode(None))
+    Leader = db.Column(db.Unicode(None))
+
+    def to_json(self):
+        return {
+            "TypeName": self.TypeName,
+            "Leader": self.Leader,
+        }
 
 class User(db.Model):
     __tablename__ = 'T_SYS_User'
@@ -838,13 +849,14 @@ class OrderListAPI(Resource):
         self.reqparser_get.add_argument("page", type=int)
         self.reqparser_get.add_argument("per_page", type=int)
         self.reqparser_get.add_argument("saler_name", type=unicode)
+        self.reqparser_get.add_argument("leader_name", type=unicode)
         super(OrderListAPI, self).__init__()
 
     def get(self):
         
         args = self.reqparser_get.parse_args()
         if args.status is not None or args.status_rest is not None or args.creater_name is not None or \
-                        args.workflow_status is not None or args.saler_name is not None:
+                        args.workflow_status is not None or args.saler_name is not None or args.leader_name is not None:
             query = WaixieOrder.query.join(User, WaixieOrder.creater_id==User.id)
 
             if args.workflow_status is not None:
@@ -861,6 +873,10 @@ class OrderListAPI(Resource):
                 if res:
                     user_type = res[0][0].strip()
                     query = query.filter(WaixieOrder.type == user_type)
+            if args.leader_name is not None:
+                user_type = UserType.query.filter_by(Leader=args.leader_name).all()
+                if len(user_type) > 0:
+                    query = query.filter(WaixieOrder.type == user_type[0].TypeName)
         else:
             query = WaixieOrder.query
 
@@ -975,8 +991,9 @@ api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/abnormal
 
 
 if __name__ == "__main__":
-    #if os.environ["FLASK_ENV"] == "development":
+    pass
+    # if os.environ["FLASK_ENV"] == "development":
     #manager.run()
-    app.run(host='0.0.0.0', debug=True, port=5050)
+    # app.run(host='0.0.0.0', debug=True, port=5050)
     #else:
         #app.run(host='0.0.0.0', debug=True, port=5050)
