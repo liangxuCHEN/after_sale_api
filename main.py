@@ -21,12 +21,14 @@ import os, json, pdb
 from aenum import Enum
 import urlparse
 from sql_helper import SqlHelper
+import requests
 
 
 base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
+meg_url = 'http://113.105.237.98:8806/outapply/PushMsg/pushms'
 
 #if os.environ["FLASK_ENV"] == "development":
 #    app.config['SQLALCHEMY_DATABASE_URI'] = \
@@ -691,8 +693,18 @@ class OrderAPI(Resource):
                 elif "trigger" in that_journal:
                     source = flow.status_code()
                     flow.trigger(that_journal["trigger"])
+                    # 每次状态改变都通知创建人
+                    push_message(entity.creater_name, '你的售后任务单有更新了')
                     if flow.state == "service_approving":
                         args["summited_at"] = datetime.now()
+                    if flow.state == "service_approved":
+                        # 找组长
+                        user_type = UserType.query.filter_by(TypeName=entity.type).all()
+                        if len(user_type) > 0:
+                            # 提醒组长审核
+                            push_message(user_type[0].Leader, '你有售后任务单需要审核')
+                    if that_journal["trigger"] == 'reject':
+                        push_message(entity.saler_name, '你处理的售后任务单被驳回了')
                     destination = flow.status_code()
                     #Q 这个没有用了 A: 确实没啥用的，lazyload查询吧对象放在内存中，由于没有关联关系，要用到其id，这套orm最大的优点就是复杂不够人性化
                     workflow_id = entity.id
@@ -741,6 +753,7 @@ class OrderAPI(Resource):
             if item is None: del args[key]
         return args
 
+
 class WaixieAbnormalProductApi(Resource):
     def __init__(self):
         self.reqparser_put = reqparse.RequestParser()
@@ -764,9 +777,10 @@ class WaixieAbnormalProductApi(Resource):
         db.session.commit()
         return {"message": "ok", "data":{}, "status": 0}
 
+
 class WaixieAbnormalProductListApi(Resource):
     def __init__(self):
-        #考虑到批处理的问题，不用参数解析器了，话说这回连strong parameter都做不到，不适合长期使用
+        # 考虑到批处理的问题，不用参数解析器了，话说这回连strong parameter都做不到，不适合长期使用
         self.reqparser = reqparse.RequestParser()
         self.reqparser.add_argument("skuCode", type=unicode, location="json")
         self.reqparser.add_argument("product_id", type=int, location="json")
@@ -813,6 +827,7 @@ class WaixieAbnormalProductListApi(Resource):
         if "waixieOrder_id" in data:
             res["waixieOrder_id"] = data["waixieOrder_id"]
         return res
+
 
 class OrderListAPI(Resource):
     def __init__(self):
@@ -877,6 +892,8 @@ class OrderListAPI(Resource):
                 user_type = UserType.query.filter_by(Leader=args.leader_name).all()
                 if len(user_type) > 0:
                     query = query.filter(WaixieOrder.type == user_type[0].TypeName)
+                else:
+                    return {"message": "ok", "data": '', "status": 0}, 200
         else:
             query = WaixieOrder.query
 
@@ -899,6 +916,7 @@ class OrderListAPI(Resource):
         entity = WaixieOrder(**args)
         db.session.add(entity)
         db.session.commit()
+        push_message(args.saler_name, '你有新的售后任务，请查看！')
         return {"message": "ok", "data":"" , "status": 0}, 200
 
     def _order_post_params(self):
@@ -990,10 +1008,16 @@ api.add_resource(WaixieAbnormalProductListApi, '/api/v1/afterservice/orders/<int
 api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/abnormal-products/<int:product_id>', endpoint='afterservice.order.abnormal-product')
 
 
+# 消息推送
+def push_message(name_list, message):
+    # print name_list
+    resp = requests.post(meg_url, json={"username": name_list, 'msg': message})
+    # print resp.json()
+
 if __name__ == "__main__":
     pass
     # if os.environ["FLASK_ENV"] == "development":
     #manager.run()
-    # app.run(host='0.0.0.0', debug=True, port=5050)
+    #app.run(host='0.0.0.0', debug=True, port=5050)
     #else:
         #app.run(host='0.0.0.0', debug=True, port=5050)

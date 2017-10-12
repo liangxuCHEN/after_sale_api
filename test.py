@@ -5,9 +5,10 @@ import requests, json, sys
 
 def fake_waixie():
     required_field = {
-        "customer_name": "成都市金虎家俱有限公司",
-        "creater_name": "陈俊文",
-        "saler_name": "陈俊文",
+        "accuser_name": "测试公司",
+        "creater_name": "测试",
+        "saler_name": "sh",
+        "reason": "test",
     }
     optional_field = {
         #"material_number": "sku2017082411541503546850",
@@ -44,14 +45,14 @@ def simple_get_test(*params):
 def simple_put_test():
     data = {}
     #data['serial_number'] = 'SH201707040001'
-    #data['operation'] = 'done'
+    data['operation'] = 'reject'
     #data['operation'] = 'reject'
-    # data['operator_name'] = 'christmas father'
+    data['operator_name'] = 'test'
     data['remark'] = "123455555"
-    data['material_supplier_name'] = "东莞市景盛家具有限公司"
-    data['saler_name'] = "东莞市"
+    #data['material_supplier_name'] = "东莞市景盛家具有限公司"
+    #data['saler_name'] = "东莞市"
     #resp = requests.put('http://192.168.3.172:5050/api/v1/afterservice/orders/143', json=data)
-    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/542', json=data)
+    resp = requests.put('http://localhost:5050/api/v1/afterservice/orders/618', json=data)
 
     print resp.json()
 
@@ -91,6 +92,12 @@ def simple_delet_test():
     resp = requests.delete('http://localhost:5050/api/v1/afterservice/deductionOrder/35')
     print resp.json()
 
+
+def push_message():
+    url = 'http://113.105.237.98:8806/outapply/PushMsg/pushms'
+    resp = requests.post(url, json={"username": 'cs1,cs1', 'msg': 'have a nice day'})
+    print resp.json()
+
 if __name__ == "__main__":
     # method = sys.argv[1]
     # params = sys.argv[2:]
@@ -99,5 +106,7 @@ if __name__ == "__main__":
     #     globals()["_".join(["simple", method, "test"])](*params)
     # else:
     #     globals()["_".join(["simple", method, "test"])]()
-    simple_get_test()
-    #simple_put_test()
+    #simple_get_test()
+    simple_put_test()
+    #push_message()
+    #simple_post_test()
