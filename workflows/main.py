@@ -36,6 +36,7 @@ workflow_trigger = [
 
 after_service_trigger = [
     {'trigger': 'done', 'source':'created', 'dest': 'waitting'},
+    {'trigger': 'reject', 'source':'waitting', 'dest': 'created'},
     {'trigger': 'done', 'source':'waitting', 'dest': 'service_approving'},
     {'trigger': 'reject', 'source':'service_approving', 'dest':'waitting'},
     {'trigger': 'done', 'source':'service_approving', 'dest': 'service_approved'},
