@@ -724,7 +724,7 @@ class OrderAPI(Resource):
 
     def delete(self, id):
         entity = WaixieOrder.query.get(id)
-        if entity is not None and entity.status == AfterServiceStatus["waitting"].value:
+        if entity is not None and entity.status == AfterServiceStatus["created"].value:
             db.session.delete(entity)
             db.session.commit()
             return {"message": "ok", "status": 0}, 200
