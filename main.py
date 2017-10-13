@@ -692,6 +692,13 @@ class OrderAPI(Resource):
                     return {"message": "invalid operaton, call developer for more", "status": 500}
                 elif "trigger" in that_journal:
                     source = flow.status_code()
+                    # 旧状态前检查
+                    if that_journal["trigger"] == 'reject':
+                        if flow.state == "service_approved":
+                            push_message(entity.saler_name, '你处理的售后任务单被驳回了')
+                        if flow.state == "waitting":
+                            push_message(entity.creater_name, '你建立的售后任务单被驳回了')
+
                     flow.trigger(that_journal["trigger"])
                     # 每次状态改变都通知创建人
                     push_message(entity.creater_name, '你的售后任务单有更新了')
@@ -703,8 +710,7 @@ class OrderAPI(Resource):
                         if len(user_type) > 0:
                             # 提醒组长审核
                             push_message(user_type[0].Leader, '你有售后任务单需要审核')
-                    if that_journal["trigger"] == 'reject':
-                        push_message(entity.saler_name, '你处理的售后任务单被驳回了')
+
                     destination = flow.status_code()
                     #Q 这个没有用了 A: 确实没啥用的，lazyload查询吧对象放在内存中，由于没有关联关系，要用到其id，这套orm最大的优点就是复杂不够人性化
                     workflow_id = entity.id
@@ -893,7 +899,7 @@ class OrderListAPI(Resource):
                 if len(user_type) > 0:
                     query = query.filter(WaixieOrder.type == user_type[0].TypeName)
                 else:
-                    return {"message": "ok", "data": '', "status": 0}, 200
+                    return {"message": "ok", "data": [], "status": 0}, 200
         else:
             query = WaixieOrder.query
 
