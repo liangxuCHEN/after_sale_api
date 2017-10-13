@@ -921,7 +921,7 @@ class OrderListAPI(Resource):
 
     def _order_post_params(self):
         args = self.reqparser.parse_args()
-        args.status = AfterServiceStatus["waitting"].value
+        args.status = AfterServiceStatus["created"].value
         args.workflow_status = WorkflowStatus['in_progress'].value
 
         # 客户与供应商的关系未知
