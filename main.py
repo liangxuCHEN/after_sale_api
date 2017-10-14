@@ -708,7 +708,10 @@ class OrderAPI(Resource):
 
                     flow.trigger(that_journal["trigger"])
                     # 每次状态改变都通知创建人
-                    push_message(entity.creater_name, '你的售后任务单有更新了')
+                    if flow.state == "waitting":
+                        push_message(args.saler_name, '你有新的售后任务，请查看！')
+                    else:
+                        push_message(entity.creater_name, '你的售后任务单有更新了')
                     if flow.state == "service_approving":
                         args["summited_at"] = datetime.now()
                     if flow.state == "service_approved":
@@ -929,7 +932,7 @@ class OrderListAPI(Resource):
         entity = WaixieOrder(**args)
         db.session.add(entity)
         db.session.commit()
-        push_message(args.saler_name, '你有新的售后任务，请查看！')
+
         return {"message": "ok", "data":"" , "status": 0}, 200
 
     def _order_post_params(self):

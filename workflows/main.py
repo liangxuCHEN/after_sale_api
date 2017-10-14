@@ -38,6 +38,9 @@ after_service_trigger = [
     {'trigger': 'done', 'source':'created', 'dest': 'waitting'},
     {'trigger': 'reject', 'source':'waitting', 'dest': 'created'},
     {'trigger': 'done', 'source':'waitting', 'dest': 'service_approving'},
+    # 直接到审核
+    {'trigger': 'double_done', 'source':'waitting', 'dest': 'service_approved'},
+
     {'trigger': 'reject', 'source':'service_approving', 'dest':'waitting'},
     {'trigger': 'done', 'source':'service_approving', 'dest': 'service_approved'},
     {'trigger': 'reject', 'source':'service_approved', 'dest':'service_approving'},
