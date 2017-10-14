@@ -295,7 +295,10 @@ class WaixieOrder(db.Model):
     #Q 售后专员？？ A：是
     saler_id = db.Column(db.Integer)     #销售者id, user表id
     saler_name = db.Column(db.Unicode(100))
-    reason = db.Column(db.UnicodeText) #原因
+
+    reason = db.Column(db.UnicodeText)  # 原因
+    reject_reason = db.Column(db.UnicodeText)  # 驳回原因
+
     charge_number = db.Column(db.Unicode(14))  # 扣款单据编号
     charge_type = db.Column(db.Unicode(100))  # charge type
     created_at = db.Column(db.DateTime, server_default=db.func.now())
@@ -358,7 +361,8 @@ class WaixieOrder(db.Model):
             'remark': self.remark,
             'saler': self.saler_name,
             'saler_phone': saler.Phone if saler is not None else "",
-            "reason": self.reason
+            "reason": self.reason,
+            "reject_reason": self.reject_reason,
         }
 
 
@@ -385,6 +389,7 @@ class WorkflowJournal(db.Model):
             'dest': self.destination,
             'trigger': self.trigger,
             'remark': self.remark,
+            'operator_name': self.operator_name,
             'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at is not None else "",
         }
 
@@ -592,6 +597,7 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("material_number", type=unicode, location="json")
         self.reqparser.add_argument("accuser_name", type=unicode, location="json")
         self.reqparser.add_argument("remark", type=unicode, location="json")
+        self.reqparser.add_argument("reject_reason", type=unicode, location="json")
         self.reqparser.add_argument("operation", type=unicode, location="json")
         self.reqparser.add_argument("operator_name", type=unicode, location="json")
         self.reqparser.add_argument("abnormal_products", type=list, location="json")
@@ -658,7 +664,6 @@ class OrderAPI(Resource):
                         db.session.add(entity_track)
                     del args["tracks"]
 
-
                 if "deductions" in args:
                     deductions = request.json["deductions"] if type(request.json['deductions']) is list else [request.json['deductions']]
                     for deduction in deductions:
@@ -698,6 +703,8 @@ class OrderAPI(Resource):
                             push_message(entity.saler_name, '你处理的售后任务单被驳回了')
                         if flow.state == "waitting":
                             push_message(entity.creater_name, '你建立的售后任务单被驳回了')
+                    else:
+                        args["reject_reason"] = ""
 
                     flow.trigger(that_journal["trigger"])
                     # 每次状态改变都通知创建人
@@ -1021,9 +1028,9 @@ def push_message(name_list, message):
     # print resp.json()
 
 if __name__ == "__main__":
-    pass
+    # pass
     # if os.environ["FLASK_ENV"] == "development":
-    #manager.run()
-    #app.run(host='0.0.0.0', debug=True, port=5050)
-    #else:
-        #app.run(host='0.0.0.0', debug=True, port=5050)
+    # manager.run()
+    app.run(host='0.0.0.0', debug=True, port=5050)
+    # else:
+    # app.run(host='0.0.0.0', debug=True, port=5050)
