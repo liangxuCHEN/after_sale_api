@@ -8,7 +8,7 @@
 #5 is it talking can deal with the deadline problem
 #6 why i come, come for what??
 #7 the mother fucker is that you should treat 2 workflow like 1
-from flask import Flask, url_for, request, jsonify, Response
+from flask import Flask, url_for, request, jsonify, Response, send_from_directory, abort
 from flask_script import Manager, Shell
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, MigrateCommand
@@ -22,7 +22,8 @@ from aenum import Enum
 import urlparse
 from sql_helper import SqlHelper
 import requests
-
+from werkzeug import secure_filename
+import time
 
 base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
@@ -42,12 +43,69 @@ app.config['SQLALCHEMY_DATABASE_URI'] = \
          "mssql+pymssql://BS-Prt:123123@192.168.1.253:1433/BSPRODUCTCENTER?charset=utf8"
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = os.getcwd() + '/uploads'
 manager = Manager(app)
 db = SQLAlchemy(app)
 mirgrate = Migrate(app, db)
 api = Api(app)
 manager.add_command('db', MigrateCommand)
 
+# 上传文件配置
+ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
+
+
+# 上传文档相关函数
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'],
+                               filename)
+
+
+html = '''
+    <!DOCTYPE html>
+    <title>Upload File</title>
+    <h1>图片上传</h1>
+    <form method=post enctype=multipart/form-data action='/api/v1/afterservice/uploads/693'>
+         <input type=file name=file>
+         <input type=submit value=上传>
+    </form>
+    '''
+
+
+@app.route('/api/v1/afterservice/uploads/<order_id>', methods=['GET', 'POST'])
+def upload_file(order_id):
+
+    if request.method == 'POST':
+        entity = WaixieOrder.query.get(order_id)
+        time_stamp = time.strftime('%Y%m%d%H%M%S')
+        if entity is not None:
+            file = request.files['file']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(time_stamp + file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                file_url = url_for('uploaded_file', filename=filename)
+                if entity.attachment:
+                    filename = entity.attachment + ',' + filename
+
+                WaixieOrder.query.filter_by(id=order_id).update({'attachment': filename})
+                db.session.commit()
+                return jsonify({"message": "ok", "status": 0, "data": file_url})
+        return jsonify({"message": "order id no found", "status": 400, "data": ""})
+    return html
+
+
+@app.route('/api/v1/afterservice/download/<filename>', methods=['GET'])
+def download(filename):
+    if request.method == "GET":
+        if os.path.isfile(os.path.join('uploads', filename)):
+            return send_from_directory('uploads', filename, as_attachment=True)
+        abort(404)
 """
 粗糙试用版本，主要提供线上对接用api，顺便拿点数据，
 试试部署方案，由于还有其他相关工作内容的整合，拖着点时间
@@ -298,6 +356,7 @@ class WaixieOrder(db.Model):
 
     reason = db.Column(db.UnicodeText)  # 原因
     reject_reason = db.Column(db.UnicodeText)  # 驳回原因
+    attachment = db.Column(db.UnicodeText) # 文件s地址
 
     charge_number = db.Column(db.Unicode(14))  # 扣款单据编号
     charge_type = db.Column(db.Unicode(100))  # charge type
@@ -363,6 +422,7 @@ class WaixieOrder(db.Model):
             'saler_phone': saler.Phone if saler is not None else "",
             "reason": self.reason,
             "reject_reason": self.reject_reason,
+            'attachment': self.attachment,
         }
 
 
@@ -721,6 +781,11 @@ class OrderAPI(Resource):
                             # 提醒组长审核
                             push_message(user_type[0].Leader, '你有售后任务单需要审核')
 
+                    # print flow.state
+                    if flow.state == "manager_reviewed":
+                        # print 'trigger'
+                        flow.workflow.trigger(that_journal["trigger"])
+                        args["workflow_status"] = flow.workflow.status_code()
                     destination = flow.status_code()
                     #Q 这个没有用了 A: 确实没啥用的，lazyload查询吧对象放在内存中，由于没有关联关系，要用到其id，这套orm最大的优点就是复杂不够人性化
                     workflow_id = entity.id
