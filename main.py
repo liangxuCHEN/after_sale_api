@@ -24,6 +24,8 @@ from sql_helper import SqlHelper
 import requests
 from werkzeug import secure_filename
 import time
+from unicodedata import normalize
+
 
 base_dir = os.path.abspath(os.path.dirname(__name__))
 app = Flask(__name__)
@@ -87,6 +89,7 @@ def upload_file(order_id):
         if entity is not None:
             file = request.files['file']
             if file and allowed_file(file.filename):
+                # filename = time_stamp + file.filename
                 filename = secure_filename(time_stamp + file.filename)
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 file_url = url_for('uploaded_file', filename=filename)
@@ -331,6 +334,28 @@ class OrderTrack(db.Model):
             "order_id": self.order_id
         }
 
+# comment
+class OrderComment(db.Model):
+    __tablename__ = "T_AS_Comment"
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer)
+    effect = db.Column(db.Integer)
+    detail = db.Column(db.Integer)
+    efficient = db.Column(db.Integer)
+    remark = db.Column(db.UnicodeText)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "effect": self.effect,
+            "detail": self.detail,
+            "efficient": self.efficient,
+            "order_id": self.order_id,
+            "remark": self.remark,
+            'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at is not None else ""
+        }
+
 
 class WaixieOrder(db.Model):
     __tablename__ = 'T_AS_WaixieOrder'
@@ -387,6 +412,7 @@ class WaixieOrder(db.Model):
     def to_json(self):
         self.abnormal_products = AbnormalProduct.query.filter_by(waixieOrder_id = self.id)
         self.tracks = OrderTrack.query.filter_by(order_id = self.id)
+        self.comment = OrderComment.query.filter_by(order_id=self.id).first()
         self.deductions = DeductionOrder.query.filter_by(order_id=self.id)
         self.duty_report = DutyReport.query.filter_by(order_id = self.id).all()
         self.customer = Supplier.query.filter_by(id=self.customer_id).first() or Supplier.query.filter_by(supplierName=self.customer_name).first()
@@ -415,6 +441,7 @@ class WaixieOrder(db.Model):
             'workflow_status': WorkflowStatus(self.workflow_status).name,
             'abnormal_porducts': [e.to_json() for e in self.abnormal_products],
             'tracks': [e.to_json() for e in self.tracks],
+            'comment': self.comment.to_json() if self.comment is not None else "",
             'duty_report': [e.to_json() for e in self.duty_report],
             'deductions': [e.to_json() for e in self.deductions],
             'remark': self.remark,
@@ -664,6 +691,7 @@ class OrderAPI(Resource):
         self.reqparser.add_argument("duty_report", type=dict, location="json")
         self.reqparser.add_argument("reason", type=unicode, location="json")
         self.reqparser.add_argument("tracks", type=list, location="json")
+        self.reqparser.add_argument("comment", type=list, location="json")
         self.reqparser.add_argument("deductions", type=list, location="json")
         self.reqparser.add_argument("charge_type", type=unicode, location="json")
 
@@ -723,6 +751,19 @@ class OrderAPI(Resource):
                         entity_track = OrderTrack(remark=track["remark"], order_id=entity.id)
                         db.session.add(entity_track)
                     del args["tracks"]
+
+                if "comment" in args:
+                    comment = request.json["comment"]
+                    print comment
+                    entity_comment = OrderComment(
+                        effect=comment['effect'],
+                        detail=comment['detail'],
+                        efficient=comment['efficient'],
+                        remark=comment.get('remark'),
+                        order_id=entity.id
+                    )
+                    db.session.add(entity_comment)
+                    del args["comment"]
 
                 if "deductions" in args:
                     deductions = request.json["deductions"] if type(request.json['deductions']) is list else [request.json['deductions']]
@@ -1094,6 +1135,7 @@ def push_message(name_list, message):
     # print name_list
     resp = requests.post(meg_url, json={"username": name_list, 'msg': message})
     # print resp.json()
+
 
 if __name__ == "__main__":
     # pass
