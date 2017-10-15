@@ -53,7 +53,7 @@ api = Api(app)
 manager.add_command('db', MigrateCommand)
 
 # 上传文件配置
-ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'pdf', 'xls', 'xlsx'])
 MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
 
 
