@@ -14,7 +14,7 @@ from fabric.contrib import files
 
 env.project_name = "afterservice_backend"
 env.repository = "http://192.168.1.115/liangxuCHEN/after_sale_api.git"
-env.app_port = '6666'
+
 
 
 def localhost():
@@ -71,29 +71,31 @@ def kill_running_project():
             run('kill -9 %s' % i)
 
 
-def stop_port(port):
+def stop_port():
     """
     断开端口
     """
     require('hosts', provided_by=[webserver_root])
-    run('fuser -k %s/tcp' % port)
+    run('fuser -k %s/tcp' % env.app_port)
 
 
-def start_server_test(port):
+def start_server_test():
     """
     新开服务
     """
+    env.app_port = '6666'
     update_project()
-    stop_port(port)
+    stop_port()
     with cd(env.path):
         run('screen -d -m Waixie gunicorn -c gun_test.conf main:app')
 
 
-def start_server(port):
+def start_server():
     """
     新开服务
     """
+    env.app_port = '5050'
     update_project()
-    stop_port(port)
+    stop_port()
     with cd(env.path):
         run('screen -d -m Waixie gunicorn -c gun.conf main:app')
