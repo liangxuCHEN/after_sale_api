@@ -79,6 +79,16 @@ def stop_port(port):
     run('fuser -k %s/tcp' % port)
 
 
+def start_server_test(port):
+    """
+    新开服务
+    """
+    update_project()
+    stop_port(port)
+    with cd(env.path):
+        run('screen -d -m Waixie gunicorn -c gun_test.conf main:app')
+
+
 def start_server(port):
     """
     新开服务
@@ -86,5 +96,4 @@ def start_server(port):
     update_project()
     stop_port(port)
     with cd(env.path):
-        run('screen -d -m Waixie gunicorn -c gun.conf gun_main:app')
-
+        run('screen -d -m Waixie gunicorn -c gun.conf main:app')
