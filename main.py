@@ -74,7 +74,7 @@ html = '''
     <title>Upload File</title>
     <h1>图片上传</h1>
     <form method=post enctype=multipart/form-data action='/api/v1/afterservice/uploads/693'>
-         <input type=file name=file>
+         <input type=file name=file multiple="">
          <input type=submit value=上传>
     </form>
     '''
@@ -87,6 +87,7 @@ def upload_file(order_id):
         entity = WaixieOrder.query.get(order_id)
         time_stamp = time.strftime('%Y%m%d%H%M%S')
         if entity is not None:
+            #print len(request.files.getlist['file'])
             file = request.files['file']
             if file and allowed_file(file.filename):
                 # filename = time_stamp + file.filename
@@ -382,6 +383,7 @@ class WaixieOrder(db.Model):
     reason = db.Column(db.UnicodeText)  # 原因
     reject_reason = db.Column(db.UnicodeText)  # 驳回原因
     attachment = db.Column(db.UnicodeText) # 文件s地址
+    pic_attachment = db.Column(db.UnicodeText)  # 文件s地址
 
     charge_number = db.Column(db.Unicode(14))  # 扣款单据编号
     charge_type = db.Column(db.Unicode(100))  # charge type
@@ -423,6 +425,10 @@ class WaixieOrder(db.Model):
             saler = User.query.filter_by(userName=self.saler_name).first()
         else:
             saler = None
+        if self.pic_attachment is not None:
+            pic_list = self.pic_attachment.split(',')
+        else:
+            pic_list = []
         return {
             'id': self.id,
             'serial_number': self.serial_number,
@@ -450,6 +456,7 @@ class WaixieOrder(db.Model):
             "reason": self.reason,
             "reject_reason": self.reject_reason,
             'attachment': self.attachment,
+            'pic_attachment': pic_list,
         }
 
 
