@@ -113,7 +113,7 @@ def download(filename):
     if request.method == "GET":
         if os.path.isfile(os.path.join('uploads', filename)):
             return send_from_directory('uploads', filename, as_attachment=True)
-        abort(404)
+        return jsonify({"message": "file not found", "status": 400, "data": ""})
 """
 粗糙试用版本，主要提供线上对接用api，顺便拿点数据，
 试试部署方案，由于还有其他相关工作内容的整合，拖着点时间
