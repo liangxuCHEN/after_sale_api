@@ -87,19 +87,23 @@ def upload_file(order_id):
         entity = WaixieOrder.query.get(order_id)
         time_stamp = time.strftime('%Y%m%d%H%M%S')
         if entity is not None:
-            #print len(request.files.getlist['file'])
-            file = request.files['file']
-            if file and allowed_file(file.filename):
-                # filename = time_stamp + file.filename
-                filename = secure_filename(time_stamp + file.filename)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                file_url = url_for('uploaded_file', filename=filename)
-                if entity.attachment:
-                    filename = entity.attachment + ',' + filename
+            files = request.files.getlist('file_data')
+            filename_list = ''
+            if entity.attachment:
+                filename_list = entity.attachment
+            for file in files:
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(time_stamp + file.filename)
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    # file_url = url_for('uploaded_file', filename=filename)
+                    if filename_list == '':
+                        filename_list = filename
+                    else:
+                        filename_list = filename_list + ',' + filename
 
-                WaixieOrder.query.filter_by(id=order_id).update({'attachment': filename})
-                db.session.commit()
-                return jsonify({"message": "ok", "status": 0, "data": file_url})
+            WaixieOrder.query.filter_by(id=order_id).update({'attachment': filename_list})
+            db.session.commit()
+            return jsonify({"message": "ok", "status": 0, "data": ''})
         return jsonify({"message": "order id no found", "status": 400, "data": ""})
     return html
 
