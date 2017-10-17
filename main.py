@@ -764,7 +764,7 @@ class OrderAPI(Resource):
 
                 if "comment" in args:
                     comment = request.json["comment"]
-                    print comment
+                    # print comment
                     entity_comment = OrderComment(
                         resume=comment.get('resume'),
                         remark=comment.get('remark'),
