@@ -344,20 +344,19 @@ class OrderComment(db.Model):
     __tablename__ = "T_AS_Comment"
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer)
-    effect = db.Column(db.Integer)
-    detail = db.Column(db.Integer)
-    efficient = db.Column(db.Integer)
+    #effect = db.Column(db.Integer)
+    #detail = db.Column(db.Integer)
+    #efficient = db.Column(db.Integer)
     remark = db.Column(db.UnicodeText)
+    resume = db.Column(db.Unicode(10))
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
     def to_json(self):
         return {
             "id": self.id,
-            "effect": self.effect,
-            "detail": self.detail,
-            "efficient": self.efficient,
             "order_id": self.order_id,
             "remark": self.remark,
+            "resume": self.resume,
             'created_at': self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at is not None else ""
         }
 
@@ -767,9 +766,7 @@ class OrderAPI(Resource):
                     comment = request.json["comment"]
                     print comment
                     entity_comment = OrderComment(
-                        effect=comment['effect'],
-                        detail=comment['detail'],
-                        efficient=comment['efficient'],
+                        resume=comment.get('resume'),
                         remark=comment.get('remark'),
                         order_id=entity.id
                     )
