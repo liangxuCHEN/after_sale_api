@@ -10,7 +10,7 @@ __author__ = "louis_chen"
 
 from fabric.api import env, local, require, sudo, settings, abort, run, cd, prompt
 from fabric.contrib import files
-
+import time
 
 env.project_name = "afterservice_backend"
 env.repository = "http://192.168.1.115/liangxuCHEN/after_sale_api.git"
@@ -105,3 +105,10 @@ def start_server():
     #stop_port()
     with cd(env.path):
         run('screen -d -m Waixie gunicorn -c gun.conf main:app')
+
+def local_update():
+    local(env.path)
+    env.release = time.strftime('%Y%m%d%H%M%S')
+    local('git add . ;git ci -m "auto update (release)"' % env)
+    local('git push')
+    update_project()
