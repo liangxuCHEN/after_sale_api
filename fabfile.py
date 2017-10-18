@@ -108,7 +108,8 @@ def start_server():
 
 def local_update():
     local(env.path)
+    webserver()
     env.release = time.strftime('%Y%m%d%H%M%S')
-    local('git add . ;git ci -m "auto update (release)"' % env)
+    local('git add . ;git ci -m "auto update %(release)s"' % env)
     local('git push')
     update_project()
