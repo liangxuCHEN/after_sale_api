@@ -66,7 +66,7 @@ def kill_running_project():
     require('path')
     with cd(env.path):
         pids = run("ps -aux | grep 'gun.conf main.app'|grep -v 'grep'|awk '{print $2'}")
-        pid_list = pids.split('\r\n')
+        pid_lisyt = pids.split('\r\n')
         for i in pid_list:
             run('kill -9 %s' % i)
 
@@ -117,4 +117,24 @@ def local_update():
 
 def local_start_server():
     local(env.path)
-    local('screen -S Waixie_test; gunicorn -c gun.conf main:app')
+    local('gunicorn -c gun_test.conf main:app')
+
+
+def local_kill_server():
+    webserver()
+    with cd(env.path):
+        pids = run("ps -aux|grep 'gun_test'|grep -v 'grep'|awk '{print $2}'")
+        print 'pids:', pids
+        pid_list = pids.split('\r\n')
+        scrpit = ' '.join(pid_list[:-1])
+        print 'scrpit:',scrpit
+        run('kill -9 %s' % scrpit)
+
+
+def local_restart_server():
+    local('git pull')
+    local_kill_server()
+    local_start_server()
+
+
+
