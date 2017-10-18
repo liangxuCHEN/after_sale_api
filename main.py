@@ -403,15 +403,15 @@ class WaixieOrder(db.Model):
 
 
     def __init__(self, *args, **kwargs):
-        today = date.today()
-        datetime_today = datetime.strptime(str(today),'%Y-%m-%d') 
-        count = len(WaixieOrder.query.filter(
-            WaixieOrder.created_at >= datetime_today,
-            WaixieOrder.created_at <= datetime_today + timedelta(days=1)
-        ).all()) + 1
-        #Q 单据编号有什么用 A: 暂不清楚
-        self.serial_number = "SH%s%s" %(datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count))
-        self.charge_number = "CH%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count))
+        # today = date.today()
+        # datetime_today = datetime.strptime(str(today),'%Y-%m-%d')
+        # count = len(WaixieOrder.query.filter(
+        #     WaixieOrder.created_at >= datetime_today,
+        #     WaixieOrder.created_at <= datetime_today + timedelta(days=1)
+        # ).all()) + 1
+        # #Q 单据编号有什么用 A: 暂不清楚
+        # self.serial_number = "SH%s%s" %(datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count))
+        # self.charge_number = "CH%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count))
         super(WaixieOrder, self).__init__(*args, **kwargs)
 
     def to_json(self):
@@ -933,6 +933,7 @@ class WaixieAbnormalProductListApi(Resource):
             db.session.commit()
         else:
             args = self.reqparser.parse_args()
+
             args["waixieOrder_id"] = waixie_id
             res = AbnormalProduct(**args)
             db.session.add(res)
@@ -972,6 +973,8 @@ class OrderListAPI(Resource):
         self.reqparser.add_argument("type", type=unicode, location="json")
         self.reqparser.add_argument("reason", type=unicode, location="json")
         self.reqparser.add_argument("saler_name", type=unicode, location="json")
+        self.reqparser.add_argument("serial_number", type=unicode, location="json")
+        self.reqparser.add_argument("charge_number", type=unicode, location="json")
         # post 必须参数
         self.reqparser_post_required = reqparse.RequestParser()
         self.reqparser_post_required.add_argument("accuser_name", type=unicode, location="json")
@@ -1053,6 +1056,19 @@ class OrderListAPI(Resource):
         args = self.reqparser.parse_args()
         args.status = AfterServiceStatus["created"].value
         args.workflow_status = WorkflowStatus['in_progress'].value
+
+        # 生产ID
+        today = date.today()
+        datetime_today = datetime.strptime(str(today), '%Y-%m-%d')
+        count = len(WaixieOrder.query.filter(
+            WaixieOrder.created_at >= datetime_today,
+            WaixieOrder.created_at <= datetime_today + timedelta(days=1)
+        ).all()) + 1
+        # 之前多线程出现相同编号，所有加了这个
+        random_str = str('%.4f' % time.time()).split('.')[1]
+        # Q 单据编号有什么用 A: 暂不清楚
+        args.serial_number = "SH%s%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count), random_str)
+        args.charge_number = "CH%s%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count), random_str)
 
         # 客户与供应商的关系未知
         # if args.customer_name is not None:
