@@ -177,6 +177,14 @@ class Supplier(db.Model):
             "supplierName": self.supplierName
         }
 
+
+class SerialNumber(db.Model):
+    __tablename__ = "T_AS_OrderIdList"
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    serial_num = db.Column(db.Integer)
+
+
 class UserType(db.Model):
     __tablename__ = 'T_SaleAfterType'
     Id = db.Column(db.Integer, primary_key=True)
@@ -1060,15 +1068,26 @@ class OrderListAPI(Resource):
         # 生产ID
         today = date.today()
         datetime_today = datetime.strptime(str(today), '%Y-%m-%d')
-        count = len(WaixieOrder.query.filter(
-            WaixieOrder.created_at >= datetime_today,
-            WaixieOrder.created_at <= datetime_today + timedelta(days=1)
-        ).all()) + 1
+        # count = len(WaixieOrder.query.filter(
+        #     WaixieOrder.created_at >= datetime_today,
+        #     WaixieOrder.created_at <= datetime_today + timedelta(days=1)
+        # ).all()) + 1
+        count = SerialNumber.query.filter(
+            SerialNumber.created_at >= datetime_today,
+            SerialNumber.created_at <= datetime_today + timedelta(days=1),
+        ).order_by('created_at desc').first()
+        if count:
+            serial_number = count.serial_num + 1
+        else:
+            serial_number = 1
+        entity = SerialNumber(serial_num=serial_number)
+        db.session.add(entity)
+        db.session.commit()
         # 之前多线程出现相同编号，所有加了这个
-        random_str = str('%.4f' % time.time()).split('.')[1]
+        # random_str = str('%.4f' % time.time()).split('.')[1]
         # Q 单据编号有什么用 A: 暂不清楚
-        args.serial_number = "SH%s%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count), random_str)
-        args.charge_number = "CH%s%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(count), random_str)
+        args.serial_number = "SH%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(serial_number))
+        args.charge_number = "CH%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(serial_number))
 
         # 客户与供应商的关系未知
         # if args.customer_name is not None:
