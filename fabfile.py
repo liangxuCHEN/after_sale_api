@@ -41,8 +41,8 @@ def webserver_root():
     """
     Use the remote server
     """
-    env.hosts = ['192.168.3.172']
-    env.user = 'root'
+    env.hosts = ['192.168.3.172',]
+    env.user = 'ls'
     #env.path = '/home/%(user)s/deployment/%(project_name)s' % env
     #env.virtualenv = "venv2017"
 
@@ -75,27 +75,33 @@ def stop_port():
     """
     断开端口
     """
-    require('hosts', provided_by=[webserver_root])
-    run('fuser -k %s/tcp' % env.app_port)
+    #require('hosts', provided_by=[webserver_root])
+    sudo('fuser -k %s/tcp' % env.app_port)
 
 
 def start_server_test():
     """
     新开服务
     """
-    env.app_port = '6666'
+    webserver()
+    require('hosts', provided_by=[webserver])
+    require('path')
+    #webserver_root()
+    env.app_port = '6060'
     update_project()
-    stop_port()
+    #stop_port()
     with cd(env.path):
-        run('screen -d -m Waixie gunicorn -c gun_test.conf main:app')
+        run('screen gunicorn -c gun_test.conf main:app')
 
 
 def start_server():
     """
     新开服务
     """
+    webserver()
+    #webserver_root()
     env.app_port = '5050'
     update_project()
-    stop_port()
+    #stop_port()
     with cd(env.path):
         run('screen -d -m Waixie gunicorn -c gun.conf main:app')
