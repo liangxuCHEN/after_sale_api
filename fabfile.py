@@ -31,7 +31,7 @@ def webserver():
     """
     Use the remote server
     """
-    env.hosts = ['192.168.3.172']
+    env.hosts = ["192.168.3.172"]
     env.user = 'django'
     env.path = '/home/%(user)s/deployment/%(project_name)s' % env
     env.virtualenv = "venv2017"
@@ -41,7 +41,7 @@ def webserver_root():
     """
     Use the remote server
     """
-    env.hosts = ['192.168.3.172',]
+    env.hosts = ['192.168.3.172']
     env.user = 'ls'
     #env.path = '/home/%(user)s/deployment/%(project_name)s' % env
     #env.virtualenv = "venv2017"
@@ -108,7 +108,6 @@ def start_server():
 
 def local_update():
     local(env.path)
-    webserver()
     env.release = time.strftime('%Y%m%d%H%M%S')
     local('git add . ;git ci -m "auto update %(release)s"' % env)
     local('git push')
@@ -120,21 +119,22 @@ def local_start_server():
     local('gunicorn -c gun_test.conf main:app')
 
 
-def local_kill_server():
+def kill_server():
     webserver()
     with cd(env.path):
-        pids = run("ps -aux|grep 'gun_test'|grep -v 'grep'|awk '{print $2}'")
-        print 'pids:', pids
+        pids = run("ps -aux|grep 'gun.conf'|grep -v 'grep'|awk '{print $2}'")
         pid_list = pids.split('\r\n')
         scrpit = ' '.join(pid_list[:-1])
-        print 'scrpit:',scrpit
-        run('kill -9 %s' % scrpit)
+        with settings(warn_only=True):
+            run('kill -9 %s' % scrpit)
 
 
-def local_restart_server():
-    local('git pull')
-    local_kill_server()
-    local_start_server()
+def restart_server():
+    webserver()
+    update_project()
+    with cd(env.path):
+        kill_server()
+        run('gunicorn -c gun.conf main:app')
 
 
 
