@@ -91,7 +91,7 @@ def start_server_test():
     update_project()
     #stop_port()
     with cd(env.path):
-        run('screen gunicorn -c gun_test.conf main:app')
+        run('screen -d -m Waixie_test gunicorn -c gun.conf main:app')
 
 
 def start_server():
@@ -113,3 +113,8 @@ def local_update():
     local('git add . ;git ci -m "auto update %(release)s"' % env)
     local('git push')
     update_project()
+
+
+def local_start_server():
+    local(env.path)
+    local('screen -S Waixie_test; gunicorn -c gun.conf main:app')
