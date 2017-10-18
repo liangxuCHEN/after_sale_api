@@ -51,6 +51,7 @@ def update_project():
     """
     更新项目
     """
+    
     webserver()
     require('hosts', provided_by=[webserver])
     require('path')
