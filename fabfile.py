@@ -68,7 +68,7 @@ def kill_running_project():
     require('path')
     with cd(env.path):
         pids = run("ps -aux | grep 'gun.conf main.app'|grep -v 'grep'|awk '{print $2'}")
-        pid_lisyt = pids.split('\r\n')
+        pid_list = pids.split('\r\n')
         for i in pid_list:
             run('kill -9 %s' % i)
 
@@ -121,10 +121,10 @@ def local_start_server():
     local('gunicorn -c gun_test.conf main:app')
 
 
-def kill_server():
+def kill_server(p_name):
     webserver()
     with cd(env.path):
-        pids = run("ps -aux|grep 'gun.conf'|grep -v 'grep'|awk '{print $2}'")
+        pids = run("ps -aux|grep '%s'|grep -v 'grep'|awk '{print $2}'" % p_name)
         pid_list = pids.split('\r\n')
         scrpit = ' '.join(pid_list[:-1])
         with settings(warn_only=True):
@@ -139,4 +139,10 @@ def restart_server():
         run('gunicorn -c gun.conf main:app')
 
 
+def restart_server_test():
+    webserver()
+    update_project()
+    with cd(env.path):
+        kill_server('gun_test')
+        run('gunicorn -c gun_test.conf main:app')
 

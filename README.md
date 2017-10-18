@@ -2,10 +2,26 @@ API测试环境：192.168.3.172:5050
 
 ## 启动程序
 
+* 方式1： 使用screen ，然后
+
 ```
 python main.py
+```
+
+* 方式2：不用screen 可以关闭终端
+
+```
 gunicorn -c gun.conf gun_main:app
 
+```
+
+* 方式3：在本地运行命令， 远程启动
+
+```
+fab restart_server
+
+# 测试可以用
+fab restart_server_test
 ```
 
 ## API 访问方式
