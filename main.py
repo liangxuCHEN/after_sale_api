@@ -1065,33 +1065,40 @@ class OrderListAPI(Resource):
         args.status = AfterServiceStatus["created"].value
         args.workflow_status = WorkflowStatus['in_progress'].value
 
-        # 生产ID
-        today = date.today()
-        datetime_today = datetime.strptime(str(today), '%Y-%m-%d')
-        # count = len(WaixieOrder.query.filter(
-        #     WaixieOrder.created_at >= datetime_today,
-        #     WaixieOrder.created_at <= datetime_today + timedelta(days=1)
-        # ).all()) + 1
-        count = SerialNumber.query.filter(
-            SerialNumber.created_at >= datetime_today,
-            SerialNumber.created_at <= datetime_today + timedelta(days=1),
-        ).order_by('created_at desc').first()
-        if count:
-            serial_number = count.serial_num + 1
-        else:
-            serial_number = 1
-        entity = SerialNumber(serial_num=serial_number)
-        db.session.add(entity)
-        db.session.commit()
-        # 之前多线程出现相同编号，所有加了这个
-        # random_str = str('%.4f' % time.time()).split('.')[1]
-        # Q 单据编号有什么用 A: 暂不清楚
-        args.serial_number = "SH%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(serial_number))
-        args.charge_number = "CH%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(serial_number))
+        # 当前生产ID
+        # today = date.today()
+        # datetime_today = datetime.strptime(str(today), '%Y-%m-%d')
+        # # count = len(WaixieOrder.query.filter(
+        # #     WaixieOrder.created_at >= datetime_today,
+        # #     WaixieOrder.created_at <= datetime_today + timedelta(days=1)
+        # # ).all()) + 1
+        # count = SerialNumber.query.filter(
+        #     SerialNumber.created_at >= datetime_today,
+        #     SerialNumber.created_at <= datetime_today + timedelta(days=1),
+        # ).order_by('created_at desc').first()
+        # if count:
+        #     serial_number = count.serial_num + 1
+        # else:
+        #     serial_number = 1
+        # entity = SerialNumber(serial_num=serial_number)
+        # db.session.add(entity)
+        # db.session.commit()
+        # # 之前多线程出现相同编号，所有加了这个
+        # # random_str = str('%.4f' % time.time()).split('.')[1]
+        # # Q 单据编号有什么用 A: 暂不清楚
+        # args.serial_number = "SH%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(serial_number))
+        # args.charge_number = "CH%s%s" % (datetime_today.strftime('%Y%m%d'), '{:0>4}'.format(serial_number))
 
+        # 新方法使用存储过程，调用API
+        serial_number = get_serial_number('SH')
+        if serial_number[u'status'] == 0:
+            args.serial_number = serial_number[u'CustomNo']
+        else:
+            return {"message": "can not get the serial number", "data": "", "status": 500}, 200
         # 客户与供应商的关系未知
         # if args.customer_name is not None:
         #     args.customer_id = User.query.filter_by(userName=args.customer_name).first().id
+
         if args.creater_name is not None:
             creater = User.query.filter_by(userName=args.creater_name).first()
             if creater is not None: args.creater_id = creater.id
@@ -1177,7 +1184,12 @@ api.add_resource(WaixieAbnormalProductApi, '/api/v1/afterservice/orders/abnormal
 def push_message(name_list, message):
     # print name_list
     resp = requests.post(meg_url, json={"username": name_list, 'msg': message})
-    # print resp.json()
+
+
+# 订单流水号生产
+def get_serial_number(prefix):
+    resp = requests.get('http://113.105.237.98:8806/shorder/CustomNo/getCustomNo?prefix=%s' % prefix)
+    return resp.json()
 
 
 if __name__ == "__main__":
