@@ -676,7 +676,8 @@ def api_type_rank():
 
 @app.route('/api/v1/afterservice/dutyreports/reasonrank')
 def api_reason_rank():
-    return jsonify({"data": ABNORMALREASON, "message": "ok", "status": 0}), 200
+    # 新需求 原因==责任异常类型
+    return jsonify({"data": REPORTTYPE, "message": "ok", "status": 0}), 200
 
 
 @app.route('/api/v1/afterservice/dutyreports/dutyrank')
