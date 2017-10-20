@@ -11,7 +11,7 @@ python main.py
 * 方式2：不用screen 可以关闭终端
 
 ```
-gunicorn -c gun.conf gun_main:app
+gunicorn -c gun.conf main:app
 
 ```
 
