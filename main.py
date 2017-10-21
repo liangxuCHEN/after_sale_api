@@ -327,7 +327,7 @@ class AbnormalProduct(db.Model):
             "id": self.id,
             "skuCode": self.skuCode,
             "remark": self.remark,
-            "product_itemName": self.product_item_name,
+            "item_name": self.product_item_name,
             "waixieOrder_id": self.waixieOrder_id
         }
 
