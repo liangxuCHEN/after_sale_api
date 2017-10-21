@@ -433,7 +433,7 @@ class WaixieOrder(db.Model):
         self.accuser = Supplier.query.filter_by(id=self.accuser_id).first() or Supplier.query.filter_by(supplierName=self.accuser_name).first()
         self.creater = User.query.filter_by(id=self.creater_id).first() or User.query.filter_by(userName=self.creater_name).first()
         if self.saler_name:
-            saler = User.query.filter_by(userName=self.saler_name).first()
+            saler = User.query.filter_by(userName=self.saler_name.strip()).first()
         else:
             saler = None
         if self.pic_attachment is not None:
