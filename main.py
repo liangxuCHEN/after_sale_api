@@ -793,6 +793,13 @@ class OrderAPI(Resource):
 
                 if "duty_report" in args:
                     duty_reports = request.json["duty_report"] if type(request.json["duty_report"]) is list else [request.json["duty_report"]]
+
+                    # 删去旧的report
+                    old_report = DutyReport.query.filter_by(order_id=entity.id).first()
+                    if old_report:
+                        db.session.delete(old_report)
+                        db.session.commit()
+
                     for report in duty_reports:
                         report["order_id"] = entity.id
                         # 过滤参数
